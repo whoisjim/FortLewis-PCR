@@ -1,0 +1,22 @@
+R1 & R2 ar 4.7 ohm and are in paralell over 5v rail. each is rated at 10W
+
+
+
+fan header
+  _____
+       |-- PWM    12V
+       |-- SENSE  NC
+     __|-- 12V    12V
+  _____|-- GND    GND
+
+Powersupply 
+BLK GND
+RED 5V
+YEL 12V
+
+
+JP1 is lcd Headder
+JP2 is fan headder
+
+avergae time to temp = <8 sec
+average overshoot max 10 deg
