@@ -64,26 +64,25 @@ class TempSensor {
   }
 
   double getTemp() { // returns the tempature from thermoristor connected to thermP in degrees C, includes noise reduction
-    static double spike0;
-    static double spike1;
+    static double spike0u;
     int tempReading = analogRead(pin);
     double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
     // noise peak removal
-    if (tempK - lastK > 2) {
-      if (spike0 == 0) {
-        spike0 = tempK - lastK;
-      } else {
-        if (spike1 == 0) {
-          spike1 = tempK - lastK;
-          spike0 = spike1;
-        }
+    if (tempK - lastK > 0.5 + (lastK -299.15) * 0.1) {
+      if (spike0u == 0) {
+        spike0u = tempK - lastK;
       }
-      tempK -= spike0;
+      tempK -= spike0u;
     } else {
-      spike0 = 0;
-      spike1 = 0;
+      spike0u = 0;
     }
+
+    if (tempK - lastK < -20) {
+      tempK += spike0u;
+      spike0u = 0;
+    }
+    
     lastK = tempK;
     return (tempK - 273.15); // convert kelvin to celcius
   }
@@ -94,7 +93,7 @@ class TempSensor {
 TempSensor pieltierT(thermP);
 
 // setup pieltier PID
-pid pieltierPID(1, 0.0, 500, 0.00008);
+pid pieltierPID(1, 0.05, 500, 0.00008);
 
 void setup() {
   // setup serial
@@ -126,7 +125,7 @@ void loop() {
   if (digitalRead(2) == HIGH) { // change target pieltier tempature
     if (b1 == false) {
       if (targetPieltierTemp == 40) {
-        targetPieltierTemp = 70;
+        targetPieltierTemp = 100;
       } else {
         targetPieltierTemp = 40;
       }
@@ -161,8 +160,8 @@ void loop() {
   Serial.print(currentPieltierTemp);
   Serial.print(" ");
   Serial.print(targetPieltierTemp);
-  Serial.print(" ");
-  Serial.print(pieltierDelta);
+  //Serial.print(" ");
+  //Serial.print(pieltierDelta);
   Serial.println();
   
   if (!power || currentPieltierTemp > 150) {// shut off system if over 150 degrees for safety
@@ -184,6 +183,6 @@ void loop() {
   } else {
     digitalWrite(inA, LOW);
     digitalWrite(inB, HIGH);
-    analogWrite(fpwm, abs(pieltierDelta * pwmDivPieltierDelta));
+    analogWrite(fpwm, abs(pieltierDelta * pwmDivPieltierDelta * 3));
   }
 }
