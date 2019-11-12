@@ -10,7 +10,7 @@ double pieltierDelta = 0; // the change in degrees celcius of pieltier wanted ov
 // for converting pieltierDelta to pwm
 const double pwmDivPieltierDelta = 1023.0 / 60.0;
 
-double targetPieltierTemp = 40; // the tempature the system will try to move to, in degrees C
+double targetPieltierTemp = 27; // the tempature the system will try to move to, in degrees C
 double currentPieltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
 
 // class for creating a pid system
@@ -68,8 +68,11 @@ class TempSensor {
     int tempReading = analogRead(pin);
     double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
+    Serial.print(tempK - 273.15);
+    Serial.print(" ");
+    
     // noise peak removal
-    if (tempK - lastK > 0.5 + (lastK -299.15) * 0.1) {
+    if (tempK - lastK > 0.5 + abs(lastK -299.15) * 0.1) {
       if (spike0u == 0) {
         spike0u = tempK - lastK;
       }
@@ -93,7 +96,7 @@ class TempSensor {
 TempSensor pieltierT(thermP);
 
 // setup pieltier PID
-pid pieltierPID(1, 0.05, 500, 0.00008);
+pid pieltierPID(1, 0.1, 500);
 
 void setup() {
   // setup serial
@@ -124,10 +127,10 @@ void loop() {
   // code testing stuff
   if (digitalRead(2) == HIGH) { // change target pieltier tempature
     if (b1 == false) {
-      if (targetPieltierTemp == 40) {
+      if (targetPieltierTemp == 27) {
         targetPieltierTemp = 100;
       } else {
-        targetPieltierTemp = 40;
+        targetPieltierTemp = 27;
       }
       b1 = true;
     }
