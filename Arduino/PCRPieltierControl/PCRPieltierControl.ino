@@ -160,8 +160,8 @@ void loop() {
   Serial.print(currentPieltierTemp);
   Serial.print(" ");
   Serial.print(targetPieltierTemp);
-  //Serial.print(" ");
-  //Serial.print(pieltierDelta);
+  Serial.print(" ");
+  Serial.print(pieltierDelta);
   Serial.println();
   
   if (!power || currentPieltierTemp > 150) {// shut off system if over 150 degrees for safety
