@@ -14,7 +14,7 @@ Q/Q_waste = P/(R*i)
 Q/Q_waste = COP
 R = ((Th-DTmax)*Vmax)/(Th*Imax)
 
-(Mass / jouls) / Heat capacity
+(Mass / jouls) / Heat capacity = temp change
 
 85.1 = P*10*1
 
