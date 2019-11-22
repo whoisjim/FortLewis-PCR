@@ -6,11 +6,12 @@ const int fpwm = 10; // pin connected to PWM on fan
 const int thermP = A0; // pin connected to thermal resistor neetwork. see elegooThermalResistorSch.png
 
 double pieltierDelta = 0; // the change in degrees celcius of pieltier wanted over the next time step
+double averagePieltierDelta = 0;
 
 // for converting pieltierDelta to pwm
 const double pwmDivPieltierDelta = 1023.0 / 60.0;
 
-double targetPieltierTemp = 27; // the tempature the system will try to move to, in degrees C
+double targetPieltierTemp = 40; // the tempature the system will try to move to, in degrees C
 double currentPieltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
 
 // class for creating a pid system
@@ -24,11 +25,10 @@ class pid {
   double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
     
   public:
-  pid (double proportionalGain = 1, double integralGain = 0, double derivativeGain = 0, double Ambiant = 0) {
+  pid (double proportionalGain = 1, double integralGain = 0, double derivativeGain = 0) {
     kp = proportionalGain; // higher moves faster
     ki = integralGain; // higher fixes ofset and faster
     kd = derivativeGain; // higher settes faster but creastes ofset
-    kAmbiant = Ambiant; // experimental, fixes ofset?, may remove. leave at zero if unshure
   }
   
   double calculate(double currentTemp, double targetTemp){ // gets tempature and performs pid calculation returns error in degrees C
@@ -38,7 +38,7 @@ class pid {
     pError = targetTemp - currentTemp;
     iError = pError * (double)(currentTime - lastTime);
     dError = (pError - lError) / (double)(currentTime - lastTime);
-    return kp * pError + ki * iError + kd * dError + (currentTemp - 27) * (currentTemp - 27) * (currentTemp - 27) * kAmbiant;
+    return kp * pError + ki * iError + kd * dError;
   }
 };
 
@@ -68,6 +68,7 @@ class TempSensor {
     int tempReading = analogRead(pin);
     double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
+
     Serial.print(tempK - 273.15);
     Serial.print(" ");
     
@@ -81,7 +82,7 @@ class TempSensor {
       spike0u = 0;
     }
 
-    if (tempK - lastK < -20) {
+    if (tempK - lastK < -10) {
       tempK += spike0u;
       spike0u = 0;
     }
@@ -96,7 +97,7 @@ class TempSensor {
 TempSensor pieltierT(thermP);
 
 // setup pieltier PID
-pid pieltierPID(1, 0.1, 500);
+pid pieltierPID(1, 0.05, 500);
 
 void setup() {
   // setup serial
@@ -127,10 +128,10 @@ void loop() {
   // code testing stuff
   if (digitalRead(2) == HIGH) { // change target pieltier tempature
     if (b1 == false) {
-      if (targetPieltierTemp == 27) {
-        targetPieltierTemp = 100;
+      if (targetPieltierTemp == 40) {
+        targetPieltierTemp = 70;
       } else {
-        targetPieltierTemp = 27;
+        targetPieltierTemp = 40;
       }
       b1 = true;
     }
@@ -152,19 +153,20 @@ void loop() {
   } else {
     b2 = false;
   }
-  
-
 
   currentPieltierTemp = pieltierT.getTemp(); // read pieltier temp
   pieltierDelta = pieltierPID.calculate(currentPieltierTemp, targetPieltierTemp); // calculate pid and set to output
   pieltierDelta = min(60, max(-60, pieltierDelta)); // clamp output between -60 and 60
+
+  // smooth output
+  averagePieltierDelta = (24 * averagePieltierDelta + pieltierDelta) / 25.0;
 
   // for graphing system state
   Serial.print(currentPieltierTemp);
   Serial.print(" ");
   Serial.print(targetPieltierTemp);
   Serial.print(" ");
-  Serial.print(pieltierDelta);
+  Serial.print(averagePieltierDelta);
   Serial.println();
   
   if (!power || currentPieltierTemp > 150) {// shut off system if over 150 degrees for safety
@@ -178,8 +180,8 @@ void loop() {
   
 
   // convert pieltierDelta to pwm, inA, inB, and fan signals
-  analogWrite(ppwm, abs(pieltierDelta * pwmDivPieltierDelta));
-  if (pieltierDelta > 0) {
+  analogWrite(ppwm, abs(averagePieltierDelta * pwmDivPieltierDelta));
+  if (averagePieltierDelta > 0) {
     digitalWrite(inA, HIGH);
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 0);
