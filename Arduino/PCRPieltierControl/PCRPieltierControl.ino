@@ -7,6 +7,7 @@ const int thermP = A0; // pin connected to thermal resistor neetwork. see elegoo
 
 double pieltierDelta = 0; // the change in degrees celcius of pieltier wanted over the next time step
 double averagePieltierDelta = 0;
+int kPieltierAverage = 10;
 
 // for converting pieltierDelta to pwm
 const double pwmDivPieltierDelta = 1023.0 / 60.0;
@@ -69,8 +70,8 @@ class TempSensor {
     double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
 
-    Serial.print(tempK - 273.15);
-    Serial.print(" ");
+    //Serial.print(tempK - 273.15);
+    //Serial.print(" ");
     
     // noise peak removal
     if (tempK - lastK > 0.5 + abs(lastK -299.15) * 0.1) {
@@ -97,7 +98,7 @@ class TempSensor {
 TempSensor pieltierT(thermP);
 
 // setup pieltier PID
-pid pieltierPID(1, 0.05, 500);
+pid pieltierPID(1, 1, 4000);
 
 void setup() {
   // setup serial
@@ -159,7 +160,7 @@ void loop() {
   pieltierDelta = min(60, max(-60, pieltierDelta)); // clamp output between -60 and 60
 
   // smooth output
-  averagePieltierDelta = (24 * averagePieltierDelta + pieltierDelta) / 25.0;
+  averagePieltierDelta = ((kPieltierAverage - 1) * averagePieltierDelta + pieltierDelta) / (double)kPieltierAverage;
 
   // for graphing system state
   Serial.print(currentPieltierTemp);
