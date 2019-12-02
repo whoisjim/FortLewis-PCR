@@ -5,8 +5,9 @@ const int ppwm = 11; // pin connected to PWM on VHN5019
 const int fpwm = 10; // pin connected to PWM on fan
 const int thermP = A0; // pin connected to thermal resistor neetwork. see elegooThermalResistorSch.png
 
+bool power = false; // software on/off
+
 double pieltierDelta = 0; // the change in degrees celcius of pieltier wanted over the next time step
-double averagePieltierDelta = 0;
 int kPieltierAverage = 10;
 
 // for converting pieltierDelta to pwm
@@ -74,6 +75,7 @@ class TempSensor {
     //Serial.print(" ");
     
     // noise peak removal
+    
     if (tempK - lastK > 0.5 + abs(lastK -299.15) * 0.1) {
       if (spike0u == 0) {
         spike0u = tempK - lastK;
@@ -89,6 +91,7 @@ class TempSensor {
     }
     
     lastK = tempK;
+    
     return (tempK - 273.15); // convert kelvin to celcius
   }
 };
@@ -121,54 +124,43 @@ void setup() {
   analogWrite(fpwm, 0);
 }
 
-bool b1 = false; // code testing stuff
-bool b2 = false; // code testing stuff
-bool power = false; // code testing stuff, but maybe shouldent be
-
 void loop() {
-  // code testing stuff
-  if (digitalRead(2) == HIGH) { // change target pieltier tempature
-    if (b1 == false) {
-      if (targetPieltierTemp == 40) {
-        targetPieltierTemp = 70;
-      } else {
-        targetPieltierTemp = 40;
-      }
-      b1 = true;
+
+  // commands
+  // off
+  //   power off
+  // on
+  //   power on
+  // pt[floatValue]
+  //   sets targetPieltierTemp to floatValue
+  
+  if (Serial.available() > 0) {
+    String incomingCommand = Serial.readString();
+    if (incomingCommand == "off\n") {
+      power = false;
     }
-    
-  } else {
-    b1 = false;
+    if (incomingCommand == "on\n") {
+      power = true;
+    }
+    if (incomingCommand.substring(0,2) == "pt") {
+      targetPieltierTemp = incomingCommand.substring(2).toFloat();
+    }
   }
 
-  if (digitalRead(3) == HIGH) { // turn on or off
-    if (b2 == false) {
-      if (power) {
-        power = false;
-      } else {
-        power = true;
-      }
-      b2 = true;
-    }
-    
-  } else {
-    b2 = false;
-  }
+
+
+
+  
 
   currentPieltierTemp = pieltierT.getTemp(); // read pieltier temp
   pieltierDelta = pieltierPID.calculate(currentPieltierTemp, targetPieltierTemp); // calculate pid and set to output
   pieltierDelta = min(60, max(-60, pieltierDelta)); // clamp output between -60 and 60
 
-  // smooth output
-  averagePieltierDelta = ((kPieltierAverage - 1) * averagePieltierDelta + pieltierDelta) / (double)kPieltierAverage;
-
   // for graphing system state
   Serial.print(currentPieltierTemp);
   Serial.print(" ");
-  Serial.print(targetPieltierTemp);
-  Serial.print(" ");
-  Serial.print(averagePieltierDelta);
-  Serial.println();
+  Serial.print(pieltierDelta * pwmDivPieltierDelta);
+  Serial.print("\n");
   
   if (!power || currentPieltierTemp > 150) {// shut off system if over 150 degrees for safety
     digitalWrite(inA, LOW);
@@ -181,8 +173,8 @@ void loop() {
   
 
   // convert pieltierDelta to pwm, inA, inB, and fan signals
-  analogWrite(ppwm, abs(averagePieltierDelta * pwmDivPieltierDelta));
-  if (averagePieltierDelta > 0) {
+  analogWrite(ppwm, abs(pieltierDelta * pwmDivPieltierDelta));
+  if (pieltierDelta > 0) {
     digitalWrite(inA, HIGH);
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 0);
