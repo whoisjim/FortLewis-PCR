@@ -1,4 +1,9 @@
+# PCRDebugUi.py
+GUI for testing PCR machene and performing cycling. Includes data recording.
+
 # DataLogger.py
+**obsolete use PCRDebugUi.py instead.**
+
 Dumps data recived over COM3 to file "Data[X].txt" where [X] is a unused file number.
 
 # DataGrapher.py
