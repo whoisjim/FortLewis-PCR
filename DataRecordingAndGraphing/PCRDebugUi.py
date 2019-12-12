@@ -5,12 +5,10 @@ import pyqtgraph as pg
 import sys
 import numpy as np
 import serial
-import matplotlib.pyplot as plt
-import random
-import copy
+import sip
 import time
 
-class serialGraphApp(QtGui.QMainWindow):
+class PCRDebugApp(QtGui.QMainWindow):
     
     class cycle():
         def __init__(self, temperature, duration):
@@ -20,6 +18,7 @@ class serialGraphApp(QtGui.QMainWindow):
     class cycleQue():
         def __init__(self):
             self.cycleStartTime = None
+            self.done = False
             self.cycles = []
         def add(self, newCycle):
             self.cycles.append(newCycle)
@@ -30,6 +29,7 @@ class serialGraphApp(QtGui.QMainWindow):
                 return None
             if len(self.cycles) == 1:
                 return self.cycles[0].temperature
+                self.done = True
             if self.cycles[0].duration < time.time() - self.cycleStartTime:
                 self.cycleStartTime += self.cycles[0].duration
                 self.cycles.pop(0)
@@ -37,100 +37,92 @@ class serialGraphApp(QtGui.QMainWindow):
         def clear(self):
             self.cycles = []
             self.cycleStartTime = None
+            self.done = False
 
     def __init__(self):
         super().__init__()
         self.port = serial.Serial()
-
+        
+        # states
+        self.connected = False
+        self.collect = False
+        self.isCycle = False
+        
         self.CPTemp = [] # curent peltier temp over time
         self.TPTemp = [] # target peltier temp over time
         self.pSignal = [] # curent signal being sent to curent drivers
-        self.recordTime = [] # what time the points where recorded at
-        self.targetPeltierTemp = 27
+        self.targetPeltierTemp = 40
         for i in range(2000):
            self.CPTemp.append(0)
            self.TPTemp.append(0)
            self.pSignal.append(0)
-           self.recordTime.append(time.time())
         self.X = np.arange(2000)
         
         self.cycles = self.cycleQue() 
-
+        
+        # for data recording
+        self.logStartTime = 0
+        self.logFile = None
+        
         self.initUi()
 
     def initUi(self):
         self.setWindowTitle("Fort Lewis PCR")
-        self.setFixedSize(1400, 600)
+        self.resize(1400, 600)
+        
+        windowLayout = QtWidgets.QGridLayout()
+        centerWidget = QtWidgets.QWidget()
+        centerWidget.setLayout(windowLayout)
+        self.setCentralWidget(centerWidget)
+        
         self.comBtn = QtGui.QPushButton("Connect", self)
-        self.comBtn.clicked.connect(self.comConnect)
-        self.comBtn.resize(100, 30)
-        self.comBtn.move(0,30)
-        self.connected = False
-        self.collect = False
-        self.isCycle = False
-
-        self.comText = QtGui.QLabel("COM", self)
-        self.comText.move(13, 1)
-
+        self.comBtn.clicked.connect(self.comConnect)   
+        comText = QtGui.QLabel("COM", self)
         self.comTextBox = QtGui.QLineEdit(self)
-        self.comTextBox.resize(50, 30)
-        self.comTextBox.move(50,0)
         
         self.runBtn = QtGui.QPushButton("Start", self)
         self.runBtn.clicked.connect(self.startStop)
-        self.runBtn.resize(100, 30)
-        self.runBtn.move(0, 60)
-
         self.cycleBtn = QtGui.QPushButton("Cycle", self)
         self.cycleBtn.clicked.connect(self.cycleOnOff)
-        self.cycleBtn.resize(100, 30)
-        self.cycleBtn.move(0, 90)
-        
-        
-        self.setBtn = QtGui.QPushButton("Set", self)
-        self.setBtn.clicked.connect(self.setTemp)
-        self.setBtn.resize(50, 30)
-        self.setBtn.move(0, 120)
-        
+
+        setBtn = QtGui.QPushButton("Set", self)
+        setBtn.clicked.connect(self.setTemp)
         self.setTextBox = QtGui.QLineEdit(self)
-        self.setTextBox.resize(50, 30)
-        self.setTextBox.move(50, 120)
+        self.setTextBox.returnPressed.connect(self.setTemp)
         
-        self.sendBtn = QtGui.QPushButton("Send", self)
-        self.sendBtn.clicked.connect(self.sendCommand)
-        self.sendBtn.resize(50, 30)
-        self.sendBtn.move(0, 150)
-        
+        sendBtn = QtGui.QPushButton("Send", self)
+        sendBtn.clicked.connect(self.sendCommand)
         self.sendTextBox = QtGui.QLineEdit(self)
-        self.sendTextBox.resize(50, 30)
-        self.sendTextBox.move(50, 150)
+        self.sendTextBox.returnPressed.connect(self.sendCommand)
         
         self.zoom = QtGui.QSlider(QtCore.Qt.Horizontal, self)
         self.zoom.setRange(50, 2000)
-        self.zoom.resize(100, 30)
-        self.zoom.move(0, 180)
         self.zoom.setValue(1000)
         
-        self.graphBtn = QtGui.QPushButton("Graph", self)
-        self.graphBtn.clicked.connect(self.plotData)
-        self.graphBtn.resize(100, 30)
-        self.graphBtn.move(0, 210)
+        cycleAddBtn = QtGui.QPushButton("Add", self)
+        cycleAddBtn.clicked.connect(self.addCycleStep)
+        
+        cycleRmBtn = QtGui.QPushButton("Remove", self)
+        cycleRmBtn.clicked.connect(self.rmCycleStep)
 
-        self.graphText = QtGui.QLabel("Start     Length", self)
-        self.graphText.move(4, 241)
-
-        self.startTextBox = QtGui.QLineEdit(self)
-        self.startTextBox.resize(50, 30)
-        self.startTextBox.move(0, 270)
-
-        self.lenTextBox = QtGui.QLineEdit(self)
-        self.lenTextBox.resize(50, 30)
-        self.lenTextBox.move(50, 270)
-
-        self.plotPT = pg.PlotWidget(self)
+        self.cycleLayout = QtWidgets.QGridLayout()
+        cycleWidget = QtWidgets.QWidget()
+        cycleWidget.setLayout(self.cycleLayout)
+        tempText = QtGui.QLabel("Temperature", self)
+        durText = QtGui.QLabel("Duration", self)
+        self.cycleNumTextBox = QtGui.QLineEdit(self)
+        
+        self.cycleTextBoxes = [(QtGui.QLineEdit(self),QtGui.QLineEdit(self)),(QtGui.QLineEdit(self),QtGui.QLineEdit(self)),(QtGui.QLineEdit(self),)]
+        self.updateCycleUi()
+        
+        self.cycleLayout.addWidget(cycleAddBtn, 0, 0)
+        self.cycleLayout.addWidget(cycleRmBtn, 0, 1)
+        self.cycleLayout.addWidget(self.cycleNumTextBox, 1, 0)
+        self.cycleLayout.addWidget(tempText, 2, 0)
+        self.cycleLayout.addWidget(durText, 2, 1)
+        
+        self.plotPT = pg.PlotWidget()
         self.plotPT.hideAxis("bottom")
-        self.plotPT.resize(1300, 300)
-        self.plotPT.move(100, 0) 
         self.pennCPTemp = pg.mkPen('b', style = QtCore.Qt.SolidLine)
         self.pennTPTemp = pg.mkPen('r', style = QtCore.Qt.SolidLine)
         self.plotPT.setXRange(1000, 2000)
@@ -138,14 +130,26 @@ class serialGraphApp(QtGui.QMainWindow):
         style = {"color": "#FFF", "font-size": "20px"}
         self.plotPT.setLabel("left", "Temperature", 'C', **style)
 
-        self.plotPS = pg.PlotWidget(self)
+        self.plotPS = pg.PlotWidget()
         self.plotPS.hideAxis("bottom")
-        self.plotPS.resize(1300, 300)
-        self.plotPS.move(100, 300)
         self.pennPSignal = pg.mkPen('g', style = QtCore.Qt.SolidLine)
         self.plotPS.setXRange(1000, 2000)
         self.plotPS.setYRange(-1024, 1024)
         self.plotPS.setLabel("left", "PWM", '', **style)
+        
+        windowLayout.addWidget(comText, 0, 0)
+        windowLayout.addWidget(self.comTextBox, 0, 1)
+        windowLayout.addWidget(self.comBtn, 0, 2, 1, 2)
+        windowLayout.addWidget(self.runBtn, 1, 0, 1, 2)
+        windowLayout.addWidget(self.cycleBtn, 1, 2, 1, 2)
+        windowLayout.addWidget(setBtn, 2, 0)
+        windowLayout.addWidget(self.setTextBox, 2, 1)
+        windowLayout.addWidget(sendBtn, 2, 2)
+        windowLayout.addWidget(self.sendTextBox, 2, 3)
+        windowLayout.addWidget(self.zoom, 3, 0, 1, 4)
+        windowLayout.addWidget(cycleWidget, 4, 0, 2, 4)
+        windowLayout.addWidget(self.plotPT, 0, 4, 5, 20)
+        windowLayout.addWidget(self.plotPS, 5, 4, 5, 20)
 
     def comConnect(self):
         if self.connected and not self.collect:
@@ -164,7 +168,6 @@ class serialGraphApp(QtGui.QMainWindow):
             except:
                 pass
 
-
     def startStop(self):
         if self.collect and self.connected:
             self.collect = False
@@ -172,11 +175,24 @@ class serialGraphApp(QtGui.QMainWindow):
             self.port.write("off\n".encode())
             self.runBtn.setText("Start")
             self.cycleBtn.setText("Cycle")
+            self.logFile.write("e " + str(time.time() - self.logStartTime))
+            self.logFile.close()
         elif self.connected:
             self.collect = True
             self.port.write("on\n".encode())
             self.runBtn.setText("Stop")
             self.port.flushInput()
+            fileName = "Data"
+            fileIndex = 0
+            while True:
+                try:
+                    file = open(str(fileName + str(fileIndex) + ".txt"), 'r')
+                    file.close()
+                    fileIndex += 1
+                except:
+                    break
+            self.logFile = open(str(fileName + str(fileIndex) + ".txt"), 'w')
+            self.logStartTime = time.time()
 
     def setTemp(self):
         self.targetPeltierTemp = float(self.setTextBox.text())
@@ -197,14 +213,32 @@ class serialGraphApp(QtGui.QMainWindow):
             self.isCycle = True
             self.cycleBtn.setText("Stop")
             self.cycles.clear()
-            self.cycles.add(self.cycle(40, 20))
-            self.cycles.add(self.cycle(70, 20))
-            self.cycles.add(self.cycle(40, 20))
-            self.cycles.add(self.cycle(70, 20))
-            self.cycles.add(self.cycle(40, 20))
-            self.cycles.add(self.cycle(70, 20))
-            self.cycles.add(self.cycle(55, 5))
-
+            for j in range(int(self.cycleNumTextBox.text())):
+                for i in range(len(self.cycleTextBoxes) - 1):
+                    self.cycles.add(self.cycle(float(self.cycleTextBoxes[i][0].text()), float(self.cycleTextBoxes[i][1].text())))
+            self.cycles.add(self.cycle(float(self.cycleTextBoxes[len(self.cycleTextBoxes) - 1][0].text()), 1))
+    
+    def addCycleStep(self):        
+        self.cycleTextBoxes.insert(len(self.cycleTextBoxes) - 1, (QtGui.QLineEdit(self),QtGui.QLineEdit(self)))
+        self.updateCycleUi()
+        
+    def rmCycleStep(self):
+        try:
+            sip.delete(self.cycleTextBoxes[len(self.cycleTextBoxes) - 2][1])
+            sip.delete(self.cycleTextBoxes[len(self.cycleTextBoxes) - 2][0])
+            self.cycleTextBoxes.pop(len(self.cycleTextBoxes) - 2)
+        except:
+            pass
+        self.updateCycleUi()
+        
+    def updateCycleUi(self):
+        for i in reversed(range(10, self.cycleLayout.count())): 
+            self.cycleLayout.itemAt(i).widget().setParent(None)
+            
+        for i in range(len(self.cycleTextBoxes)):
+            for j in range(len(self.cycleTextBoxes[i])):
+                self.cycleLayout.addWidget(self.cycleTextBoxes[i][j], i + 3, j)
+                
     def update(self):
         if self.connected:
             data = []
@@ -226,13 +260,16 @@ class serialGraphApp(QtGui.QMainWindow):
             if len(data) == 2:
                 self.CPTemp.append(data[0])
                 self.pSignal.append(data[1])
+                if self.collect:
+                    self.logFile.write(str(data[0]) + " " + str(self.targetPeltierTemp) + " " + str(data[1]) + "\n")
             else:
                 self.CPTemp.append(self.CPTemp[len(self.CPTemp) - 1])
                 self.pSignal.append(self.pSignal[len(self.pSignal) - 1])
+                if self.collect:
+                    self.logFile.write(str(self.CPTemp[len(self.CPTemp) - 1]) + " " + str(self.targetPeltierTemp) + " " + str(self.pSignal[len(self.pSignal) - 1]) + "\n")
             self.CPTemp.pop(0)
             self.pSignal.pop(0)
-            self.recordTime.append(time.time())
-            self.recordTime.pop(0)
+            
         self.plotPT.setXRange(2000 - self.zoom.value(), 2000)
         self.plotPS.setXRange(2000 - self.zoom.value(), 2000)
         self.plotPT.plot(self.X, self.CPTemp, pen = self.pennCPTemp, clear = True)
@@ -240,44 +277,6 @@ class serialGraphApp(QtGui.QMainWindow):
         self.plotPS.plot(self.X, self.pSignal, pen = self.pennPSignal, clear = True)
         QtCore.QTimer.singleShot(1, self.update)
         
-    def plotData(self):
-        readTemp = copy.deepcopy(self.CPTemp)
-        targetTemp = copy.deepcopy(self.TPTemp)
-        signal = copy.deepcopy(self.pSignal)
-        times = [float(time) - float(self.recordTime[0]) for time in self.recordTime]
-        
-        # clip data to specified bounds
-        while times[0] < float(self.startTextBox.text()):
-            times.pop(0)
-            readTemp.pop(0)
-            targetTemp.pop(0)
-            signal.pop(0)
-        while times[len(times) - 1] > float(self.lenTextBox.text()) + float(self.startTextBox.text()):
-            times.pop(len(times) - 1)
-            readTemp.pop(len(readTemp) - 1)
-            targetTemp.pop(len(targetTemp) - 1)
-            signal.pop(len(signal) - 1)
-        times = [t - float(self.startTextBox.text()) for t in times] # move times to start time
-
-        # plot data and format
-        fig = plt.figure(figsize=(20, 6))
-        tempPlot = fig.add_subplot(211)
-        signalPlot = fig.add_subplot(212)
-        tempPlot.plot(times, readTemp, c = "b", linewidth = 1.0)
-        tempPlot.plot(times, targetTemp, c = "r", ls = "--", linewidth = 1.0)
-        tempPlot.axis([0, float(self.lenTextBox.text()), None, None])
-        tempPlot.set_ylabel("Temperature (C)")
-        tempPlot.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
-        tempPlot.legend(("Current Temperature", "Target Temperature"), loc="upper left")
-        signalPlot.plot(times, signal, c = "g", linewidth = 1.0)
-        signalPlot.axis([0, float(self.lenTextBox.text()), None, None])
-        signalPlot.set_xlabel("Time (s)")
-        signalPlot.set_ylabel("PID Signal")
-        signalPlot.legend(("PID Signal",), loc="upper left")
-        fig.tight_layout()
-        fig.savefig("img.png", dpi = 500)
-        plt.show()
-    
     def closeEvent(self, event):
         try:
             self.port.write("off\n".encode())
@@ -286,7 +285,7 @@ class serialGraphApp(QtGui.QMainWindow):
             pass
 
 app = QtGui.QApplication(sys.argv)
-window = serialGraphApp()
+window = PCRDebugApp()
 window.show()
 window.update()
 app.exec_()
