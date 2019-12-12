@@ -1,5 +1,5 @@
 # PCRDebugUi.py
-GUI for testing PCR machene and performing cycling. Includes data recording.
+GUI for testing PCR machene and performing cycling. Includes data recording. Unfinished.
 
 # DataLogger.py
 **obsolete use PCRDebugUi.py instead.**
