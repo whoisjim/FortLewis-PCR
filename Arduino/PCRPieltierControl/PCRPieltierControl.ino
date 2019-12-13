@@ -7,14 +7,13 @@ const int thermP = A0; // pin connected to thermal resistor neetwork. see elegoo
 
 bool power = false; // software on/off
 
-double pieltierDelta = 0; // the change in degrees celcius of pieltier wanted over the next time step
-int kPieltierAverage = 10;
+double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
 
-// for converting pieltierDelta to pwm
-const double pwmDivPieltierDelta = 1023.0 / 60.0;
+float avgPTemp = 0; // last average for peltier temperature
+int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
 
-double targetPieltierTemp = 40; // the tempature the system will try to move to, in degrees C
-double currentPieltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
+double targetPeltierTemp = 40; // the tempature the system will try to move to, in degrees C
+double currentPeltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
 
 // class for creating a pid system
 class pid {
@@ -30,7 +29,7 @@ class pid {
   pid (double proportionalGain = 1, double integralGain = 0, double derivativeGain = 0) {
     kp = proportionalGain; // higher moves faster
     ki = integralGain; // higher fixes ofset and faster
-    kd = derivativeGain; // higher settes faster but creastes ofset
+    kd = derivativeGain; // higher settes faster but creastes ofset and amplifies noise
   }
   
   double calculate(double currentTemp, double targetTemp){ // gets tempature and performs pid calculation returns error in degrees C
@@ -41,6 +40,15 @@ class pid {
     iError = pError * (double)(currentTime - lastTime);
     dError = (pError - lError) / (double)(currentTime - lastTime);
     return kp * pError + ki * iError + kd * dError;
+  }
+  void setKp(float value) {
+    kp = value;
+  }
+  void setKi(float value) {
+    ki = value;
+  }
+  void setKd(float value) {
+    kd = value;
   }
 };
 
@@ -96,12 +104,11 @@ class TempSensor {
   }
 };
 
-
 // setup pieltier tempature sensor
-TempSensor pieltierT(thermP);
+TempSensor peltierT(thermP);
 
 // setup pieltier PID
-pid pieltierPID(1, 1, 4000);
+pid peltierPID(5, 0.8, 6000);
 
 void setup() {
   // setup serial
@@ -125,15 +132,17 @@ void setup() {
 }
 
 void loop() {
-
   // commands
   // off
   //   power off
   // on
   //   power on
   // pt[floatValue]
-  //   sets targetPieltierTemp to floatValue
-  
+  //   sets targetPeltierTemp to floatValue
+  // pk[p,d,i][value]
+  //   sets pid constants for peltier
+  // pa[intValue]
+  //   sets sample size for peltier moving average
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
     if (incomingCommand == "off\n") {
@@ -143,44 +152,51 @@ void loop() {
       power = true;
     }
     if (incomingCommand.substring(0,2) == "pt") {
-      targetPieltierTemp = incomingCommand.substring(2).toFloat();
+      targetPeltierTemp = incomingCommand.substring(2).toFloat();
+    }
+    if (incomingCommand.substring(0,3) == "pkp") {
+      peltierPID.setKp(incomingCommand.substring(3).toFloat());
+    }
+    if (incomingCommand.substring(0,3) == "pki") {
+      peltierPID.setKi(incomingCommand.substring(3).toFloat());
+    }
+    if (incomingCommand.substring(0,3) == "pkd") {
+      peltierPID.setKd(incomingCommand.substring(3).toFloat());
+    }
+    if (incomingCommand.substring(0,2) == "pa") {
+      avgPTempSampleSize = incomingCommand.substring(2).toInt();
     }
   }
-
-
-
-
   
-
-  currentPieltierTemp = pieltierT.getTemp(); // read pieltier temp
-  pieltierDelta = pieltierPID.calculate(currentPieltierTemp, targetPieltierTemp); // calculate pid and set to output
-  pieltierDelta = min(60, max(-60, pieltierDelta)); // clamp output between -60 and 60
+  currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
+  avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
+  peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
+  peltierPWM = min(255, max(-255, peltierPWM)); // clamp output between -255 and 255
 
   // for graphing system state
-  Serial.print(currentPieltierTemp);
+  Serial.print(avgPTemp);
   Serial.print(" ");
-  Serial.print(pieltierDelta * pwmDivPieltierDelta);
+  Serial.print(peltierPWM);
   Serial.print("\n");
   
-  if (!power || currentPieltierTemp > 150) {// shut off system if over 150 degrees for safety
+  if (!power || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
     digitalWrite(inA, LOW);
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 1024);
     analogWrite(ppwm, 0);
-    pieltierT.resetTemp();
+    peltierT.resetTemp();
     return;
   }
-  
 
   // convert pieltierDelta to pwm, inA, inB, and fan signals
-  analogWrite(ppwm, abs(pieltierDelta * pwmDivPieltierDelta));
-  if (pieltierDelta > 0) {
+  analogWrite(ppwm, abs(peltierPWM));
+  if (peltierPWM > 0) {
     digitalWrite(inA, HIGH);
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 0);
   } else {
     digitalWrite(inA, LOW);
     digitalWrite(inB, HIGH);
-    analogWrite(fpwm, abs(pieltierDelta * pwmDivPieltierDelta * 3));
+    analogWrite(fpwm, abs(peltierPWM));
   }
 }
