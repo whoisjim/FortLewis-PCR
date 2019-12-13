@@ -121,6 +121,8 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.cycleLayout.addWidget(tempText, 2, 0)
         self.cycleLayout.addWidget(durText, 2, 1)
         
+        sendText = QtGui.QLabel("commands\noff\n  power off\non\n  power on\npt[floatValue]\n  sets targetPeltierTemp to floatValue\npk[p,d,i][value]\n  sets pid constants for peltier\npa[intValue]\n  sets sample size for peltier moving average", self)
+        
         self.plotPT = pg.PlotWidget()
         self.plotPT.hideAxis("bottom")
         self.pennCPTemp = pg.mkPen('b', style = QtCore.Qt.SolidLine)
@@ -134,7 +136,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.plotPS.hideAxis("bottom")
         self.pennPSignal = pg.mkPen('g', style = QtCore.Qt.SolidLine)
         self.plotPS.setXRange(1000, 2000)
-        self.plotPS.setYRange(-1024, 1024)
+        self.plotPS.setYRange(-255, 255)
         self.plotPS.setLabel("left", "PWM", '', **style)
         
         windowLayout.addWidget(comText, 0, 0)
@@ -148,8 +150,9 @@ class PCRDebugApp(QtGui.QMainWindow):
         windowLayout.addWidget(self.sendTextBox, 2, 3)
         windowLayout.addWidget(self.zoom, 3, 0, 1, 4)
         windowLayout.addWidget(cycleWidget, 4, 0, 2, 4)
-        windowLayout.addWidget(self.plotPT, 0, 4, 5, 20)
-        windowLayout.addWidget(self.plotPS, 5, 4, 5, 20)
+        windowLayout.addWidget(sendText, 7, 0, 2, 4)
+        windowLayout.addWidget(self.plotPT, 0, 4, 10, 4)
+        windowLayout.addWidget(self.plotPS, 0, 8, 10, 4)
 
     def comConnect(self):
         if self.connected and not self.collect:
