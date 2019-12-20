@@ -41,24 +41,24 @@ class PCRDebugApp(QtGui.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.port = serial.Serial()
+        self.port = serial.Serial() # create serial port
         
         # states
-        self.connected = False
-        self.collect = False
-        self.isCycle = False
+        self.connected = False # is an arduino connected?
+        self.collect = False # is the system heating and cooling?
+        self.isCycle = False # is a cucle que running?
         
         self.CPTemp = [] # curent peltier temp over time
         self.TPTemp = [] # target peltier temp over time
         self.pSignal = [] # curent signal being sent to curent drivers
-        self.targetPeltierTemp = 40
-        for i in range(2000):
+        self.targetPeltierTemp = 40 # set initial temperature
+        for i in range(2000): # initialide all realtime data to 0
            self.CPTemp.append(0)
            self.TPTemp.append(0)
            self.pSignal.append(0)
-        self.X = np.arange(2000)
+        self.X = np.arange(2000) # generate X positions for realtime graphs
         
-        self.cycles = self.cycleQue() 
+        self.cycles = self.cycleQue() # create empty cycle que
         
         # for data recording
         self.logStartTime = 0
@@ -66,7 +66,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         
         self.initUi()
 
-    def initUi(self):
+    def initUi(self): # create and arange all of the UI
         self.setWindowTitle("Fort Lewis PCR")
         self.resize(1400, 600)
         
@@ -154,7 +154,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         windowLayout.addWidget(self.plotPT, 0, 4, 10, 4)
         windowLayout.addWidget(self.plotPS, 0, 8, 10, 4)
 
-    def comConnect(self):
+    def comConnect(self): # connects and disconnects com port
         if self.connected and not self.collect:
             self.port.close()
             self.connected = False
@@ -171,7 +171,7 @@ class PCRDebugApp(QtGui.QMainWindow):
             except:
                 pass
 
-    def startStop(self):
+    def startStop(self): # turns the heating elements on or off
         if self.collect and self.connected:
             self.collect = False
             self.isCycle = False
@@ -197,18 +197,29 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.logFile = open(str(fileName + str(fileIndex) + ".txt"), 'w')
             self.logStartTime = time.time()
 
-    def setTemp(self):
+    def setTemp(self): # sets the systems target temperature
         self.targetPeltierTemp = float(self.setTextBox.text())
         self.setTextBox.clear()
         
-    def sendCommand(self):
+    def sendCommand(self): # sends a command to the arduino
+          # commands
+          # off
+          #   power off
+          # on
+          #   power on
+          # pt[floatValue]
+          #   sets targetPeltierTemp to floatValue
+          # pk[p,d,i][value]
+          #   sets pid constants for peltier
+          # pa[intValue]
+          #   sets sample size for peltier moving average
         if self.sendTextBox.text()[0:2] == "pt":
             self.targetPeltierTemp = float(self.sendTextBox.text()[2:])
         else:
             self.port.write((self.sendTextBox.text() + "\n").encode())
         self.sendTextBox.clear()
     
-    def cycleOnOff(self):
+    def cycleOnOff(self): # starts or stpos the cycle que
         if self.isCycle:
             self.isCycle = False
             self.cycleBtn.setText("Cycle")
@@ -216,16 +227,16 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.isCycle = True
             self.cycleBtn.setText("Stop")
             self.cycles.clear()
-            for j in range(int(self.cycleNumTextBox.text())):
+            for j in range(int(self.cycleNumTextBox.text())): # load cycle que from UI
                 for i in range(len(self.cycleTextBoxes) - 1):
                     self.cycles.add(self.cycle(float(self.cycleTextBoxes[i][0].text()), float(self.cycleTextBoxes[i][1].text())))
             self.cycles.add(self.cycle(float(self.cycleTextBoxes[len(self.cycleTextBoxes) - 1][0].text()), 1))
     
-    def addCycleStep(self):        
+    def addCycleStep(self): # adds new steps for cycle que
         self.cycleTextBoxes.insert(len(self.cycleTextBoxes) - 1, (QtGui.QLineEdit(self),QtGui.QLineEdit(self)))
         self.updateCycleUi()
         
-    def rmCycleStep(self):
+    def rmCycleStep(self):# removes steps from cycle que
         try:
             sip.delete(self.cycleTextBoxes[len(self.cycleTextBoxes) - 2][1])
             sip.delete(self.cycleTextBoxes[len(self.cycleTextBoxes) - 2][0])
@@ -234,7 +245,7 @@ class PCRDebugApp(QtGui.QMainWindow):
             pass
         self.updateCycleUi()
         
-    def updateCycleUi(self):
+    def updateCycleUi(self): # updates UI for cycle que
         for i in reversed(range(10, self.cycleLayout.count())): 
             self.cycleLayout.itemAt(i).widget().setParent(None)
             
@@ -242,8 +253,9 @@ class PCRDebugApp(QtGui.QMainWindow):
             for j in range(len(self.cycleTextBoxes[i])):
                 self.cycleLayout.addWidget(self.cycleTextBoxes[i][j], i + 3, j)
                 
-    def update(self):
+    def update(self): # controlls system
         if self.connected:
+            # try to read data from arduino
             data = []
             try:
                 portBytes = self.port.readline()
@@ -252,12 +264,15 @@ class PCRDebugApp(QtGui.QMainWindow):
             except:
                 pass
             
+            # update targetPeltierTemp from cycle que
             if self.isCycle:
                 self.targetPeltierTemp = self.cycles.getTemp()
-                
+            
+            # send arduino command for updated target temperature
             if self.targetPeltierTemp != self.TPTemp[len(self.TPTemp) - 1]: # sends command for temp set
                 self.port.write(("pt" + str(self.targetPeltierTemp) + "\n").encode())
             
+            # update data for realtime graphs
             self.TPTemp.append(self.targetPeltierTemp) 
             self.TPTemp.pop(0)
             if len(data) == 2:
@@ -272,7 +287,8 @@ class PCRDebugApp(QtGui.QMainWindow):
                     self.logFile.write(str(self.CPTemp[len(self.CPTemp) - 1]) + " " + str(self.targetPeltierTemp) + " " + str(self.pSignal[len(self.pSignal) - 1]) + "\n")
             self.CPTemp.pop(0)
             self.pSignal.pop(0)
-            
+        
+        # update realtime graphs
         self.plotPT.setXRange(2000 - self.zoom.value(), 2000)
         self.plotPS.setXRange(2000 - self.zoom.value(), 2000)
         self.plotPT.plot(self.X, self.CPTemp, pen = self.pennCPTemp, clear = True)
@@ -280,13 +296,14 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.plotPS.plot(self.X, self.pSignal, pen = self.pennPSignal, clear = True)
         QtCore.QTimer.singleShot(1, self.update)
         
-    def closeEvent(self, event):
+    def closeEvent(self, event): # shut system off if application is closed
         try:
             self.port.write("off\n".encode())
             self.port.close()
         except:
             pass
 
+# create, and execute application
 app = QtGui.QApplication(sys.argv)
 window = PCRDebugApp()
 window.show()
