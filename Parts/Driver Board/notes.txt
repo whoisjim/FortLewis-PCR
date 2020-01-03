@@ -1,3 +1,5 @@
+https://www.pololu.com/product/1451
+
 Diferences between Pololu #1451 board and OpenPCR board
 
 Polou board uses VHN5019 chip, OpenPCR uses VNH3SP30
