@@ -132,10 +132,11 @@ void setup() {
   digitalWrite(inB, LOW);
   analogWrite(ppwm, 0);
   analogWrite(fpwm, 0);
+
+  peltierT.resetTemp();
 }
 
 void loop() {
-  peltierT.resetTemp();
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
@@ -146,10 +147,12 @@ void loop() {
   }
 
   if (start) {
-    peltierPWM = 255;
+    peltierPWM = 63;
+  } else {
+    peltierT.resetTemp();
   }
 
-  float pI = (analogRead(A1) * (5 / 1023.0)) / 0.07 * 2; 
+  float pI = analogRead(A1) * 0.065168; // for two driver boards
   float pV = peltierPWM * (15 / 255.0);
   
   // for graphing system state
@@ -188,7 +191,7 @@ void loop() {
     analogWrite(fpwm, 0);
   } else {
     digitalWrite(inA, LOW);
-    digitalWrite(inB, HIGH);
-    analogWrite(fpwm, abs(peltierPWM));
+    digitalWrite(inB, LOW);
+    analogWrite(fpwm, 255);
   }
 }
