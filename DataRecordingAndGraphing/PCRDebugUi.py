@@ -260,6 +260,8 @@ class PCRDebugApp(QtGui.QMainWindow):
             try:
                 portBytes = self.port.readline()
                 line = str(portBytes[0 : len(portBytes) - 2].decode("utf-8"))
+                if self.collect:
+                    self.logFile.write(str(self.targetPeltierTemp) + " " + line + "\n")
                 data = [float(num) for num in line.split()]
             except:
                 pass
@@ -275,16 +277,12 @@ class PCRDebugApp(QtGui.QMainWindow):
             # update data for realtime graphs
             self.TPTemp.append(self.targetPeltierTemp) 
             self.TPTemp.pop(0)
-            if len(data) == 2:
+            if len(data) >= 2:
                 self.CPTemp.append(data[0])
                 self.pSignal.append(data[1])
-                if self.collect:
-                    self.logFile.write(str(data[0]) + " " + str(self.targetPeltierTemp) + " " + str(data[1]) + "\n")
             else:
                 self.CPTemp.append(self.CPTemp[len(self.CPTemp) - 1])
                 self.pSignal.append(self.pSignal[len(self.pSignal) - 1])
-                if self.collect:
-                    self.logFile.write(str(self.CPTemp[len(self.CPTemp) - 1]) + " " + str(self.targetPeltierTemp) + " " + str(self.pSignal[len(self.pSignal) - 1]) + "\n")
             self.CPTemp.pop(0)
             self.pSignal.pop(0)
         
