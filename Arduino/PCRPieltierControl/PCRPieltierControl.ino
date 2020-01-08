@@ -9,7 +9,7 @@ bool power = false; // software on/off
 
 double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
 int limitPWMH = 255;
-int limitPWMC = 127;
+int limitPWMC = 255;
 
 float avgPTemp = 0; // last average for peltier temperature
 int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
