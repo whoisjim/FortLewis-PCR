@@ -8,6 +8,8 @@ const int thermP = A0; // pin connected to thermal resistor neetwork. see elegoo
 bool power = false; // software on/off
 
 double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
+int limitPWMH = 255;
+int limitPWMC = 127;
 
 float avgPTemp = 0; // last average for peltier temperature
 int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
@@ -108,7 +110,7 @@ class TempSensor {
 TempSensor peltierT(thermP);
 
 // setup pieltier PID
-pid peltierPID(5, 0.8, 6000);
+pid peltierPID(5, 0.8, 6000); // (5, 0.8, 6000)
 
 void setup() {
   // setup serial
@@ -166,17 +168,25 @@ void loop() {
     if (incomingCommand.substring(0,2) == "pa") {
       avgPTempSampleSize = incomingCommand.substring(2).toInt();
     }
+    if (incomingCommand.substring(0,3) == "plc") {
+      limitPWMC = incomingCommand.substring(3).toInt();
+    }
+    if (incomingCommand.substring(0,3) == "plh") {
+      limitPWMH = incomingCommand.substring(3).toInt();
+    }
   }
   
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
-  peltierPWM = min(255, max(-255, peltierPWM)); // clamp output between -255 and 255
+  peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
 
   // for graphing system state
   Serial.print(avgPTemp);
   Serial.print(" ");
   Serial.print(peltierPWM);
+  Serial.print(" ");
+  Serial.print(analogRead(A1) * 0.065168);
   Serial.print("\n");
   
   if (!power || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
