@@ -182,7 +182,7 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.logFile.close()
         elif self.connected:
             self.collect = True
-            self.port.write("on\n".encode())
+            self.port.write(("on" + str(self.targetPeltierTemp) + "\n").encode())
             self.runBtn.setText("Stop")
             self.port.flushInput()
             fileName = "Data"
@@ -224,13 +224,17 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.isCycle = False
             self.cycleBtn.setText("Cycle")
         elif self.collect:
-            self.isCycle = True
-            self.cycleBtn.setText("Stop")
-            self.cycles.clear()
-            for j in range(int(self.cycleNumTextBox.text())): # load cycle que from UI
-                for i in range(len(self.cycleTextBoxes) - 1):
-                    self.cycles.add(self.cycle(float(self.cycleTextBoxes[i][0].text()), float(self.cycleTextBoxes[i][1].text())))
-            self.cycles.add(self.cycle(float(self.cycleTextBoxes[len(self.cycleTextBoxes) - 1][0].text()), 1))
+            try:
+                self.isCycle = True
+                self.cycleBtn.setText("Stop")
+                self.cycles.clear()
+                for j in range(int(self.cycleNumTextBox.text())): # load cycle que from UI
+                    for i in range(len(self.cycleTextBoxes) - 1):
+                        self.cycles.add(self.cycle(float(self.cycleTextBoxes[i][0].text()), float(self.cycleTextBoxes[i][1].text())))
+                self.cycles.add(self.cycle(float(self.cycleTextBoxes[len(self.cycleTextBoxes) - 1][0].text()), 1))
+            except:
+                self.isCycle = False
+                self.cycleBtn.setText("Cycle")
     
     def addCycleStep(self): # adds new steps for cycle que
         self.cycleTextBoxes.insert(len(self.cycleTextBoxes) - 1, (QtGui.QLineEdit(self),QtGui.QLineEdit(self)))

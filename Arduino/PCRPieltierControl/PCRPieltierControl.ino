@@ -14,6 +14,9 @@ int limitPWMC = 255;
 float avgPTemp = 0; // last average for peltier temperature
 int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
 
+float avgPPWM = 0; // last average for peltier temperature
+int avgPPWMSampleSize = 2; // sample size for peltier temperature moving average
+
 double targetPeltierTemp = 40; // the tempature the system will try to move to, in degrees C
 double currentPeltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
 
@@ -23,10 +26,10 @@ class pid {
   double kp; // higher moves faster
   double ki; // higher fixes ofset and faster
   double kd; // higher settes faster but creastes ofset
-  double kAmbiant; // experimental, fixes ofset?, may remove. leave at zero if unshure
   unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
   double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
-    
+  double iErrorLimit = 255;
+  
   public:
   pid (double proportionalGain = 1, double integralGain = 0, double derivativeGain = 0) {
     kp = proportionalGain; // higher moves faster
@@ -34,23 +37,87 @@ class pid {
     kd = derivativeGain; // higher settes faster but creastes ofset and amplifies noise
   }
   
-  double calculate(double currentTemp, double targetTemp){ // gets tempature and performs pid calculation returns error in degrees C
+  double calculate(double currentTemp, double targetTemp) { // performs pid calculation returns error
     lastTime = currentTime;
     currentTime = millis();
     lError = pError;
     pError = targetTemp - currentTemp;
-    iError = pError * (double)(currentTime - lastTime);
-    dError = (pError - lError) / (double)(currentTime - lastTime);
+    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
+    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
     return kp * pError + ki * iError + kd * dError;
   }
+  
   void setKp(float value) {
     kp = value;
   }
+  
   void setKi(float value) {
     ki = value;
   }
+  
   void setKd(float value) {
     kd = value;
+  }
+};
+
+class dualPid {
+  private:
+  double ikp; // higher moves faster
+  double iki; // higher fixes ofset and faster
+  double ikd; // higher settes faster but creastes ofset
+  double dkp; // higher moves faster
+  double dki; // higher fixes ofset and faster
+  double dkd; // higher settes faster but creastes ofset
+  unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
+  double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
+  double iErrorLimit = 127;
+  
+  public:
+  dualPid (double proportionalGainI = 1, double integralGainI = 0, double derivativeGainI = 0, double proportionalGainD = 1, double integralGainD = 0, double derivativeGainD = 0) {
+    ikp = proportionalGainI; // higher moves faster
+    iki = integralGainI; // higher fixes ofset and faster
+    ikd = derivativeGainI; // higher settes faster but creastes ofset and amplifies noise
+    dkp = proportionalGainD; // higher moves faster
+    dki = integralGainD; // higher fixes ofset and faster
+    dkd = derivativeGainD; // higher settes faster but creastes ofset and amplifies noise
+  }
+  
+  double calculate(double currentTemp, double targetTemp) { // performs pid calculation
+    lastTime = currentTime;
+    currentTime = millis();
+    lError = pError;
+    pError = targetTemp - currentTemp;
+    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
+    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
+    if (currentTemp > targetTemp) {
+      return dkp * pError + dki * iError + dkd * dError;
+    } else {
+      return ikp * pError + iki * iError + ikd * dError;
+    }
+  }
+  
+  void setIkp(float value) {
+    ikp = value;
+  }
+  
+  void setIki(float value) {
+    iki = value;
+  }
+  
+  void setIkd(float value) {
+    ikd = value;
+  }
+
+  void setDkp(float value) {
+    dkp = value;
+  }
+  
+  void setDki(float value) {
+    dki = value;
+  }
+  
+  void setDkd(float value) {
+    dkd = value;
   }
 };
 
@@ -110,7 +177,7 @@ class TempSensor {
 TempSensor peltierT(thermP);
 
 // setup pieltier PID
-pid peltierPID(5, 0.8, 6000); // (5, 0.8, 6000)
+dualPid peltierPID(20, 1, 100, 20, 1, 0); // 5, 2, 4000, 8, 2, 4000 data43
 
 void setup() {
   // setup serial
@@ -152,21 +219,36 @@ void loop() {
     }
     if (incomingCommand == "on\n") {
       power = true;
+    } else if (incomingCommand.substring(0,2) == "on") {
+      power = true;
+      targetPeltierTemp = incomingCommand.substring(2).toFloat();
     }
     if (incomingCommand.substring(0,2) == "pt") {
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
     }
-    if (incomingCommand.substring(0,3) == "pkp") {
-      peltierPID.setKp(incomingCommand.substring(3).toFloat());
+    if (incomingCommand.substring(0,4) == "pikp") {
+      peltierPID.setIkp(incomingCommand.substring(4).toFloat());
     }
-    if (incomingCommand.substring(0,3) == "pki") {
-      peltierPID.setKi(incomingCommand.substring(3).toFloat());
+    if (incomingCommand.substring(0,4) == "piki") {
+      peltierPID.setIki(incomingCommand.substring(4).toFloat());
     }
-    if (incomingCommand.substring(0,3) == "pkd") {
-      peltierPID.setKd(incomingCommand.substring(3).toFloat());
+    if (incomingCommand.substring(0,4) == "pikd") {
+      peltierPID.setIkd(incomingCommand.substring(4).toFloat());
     }
-    if (incomingCommand.substring(0,2) == "pa") {
-      avgPTempSampleSize = incomingCommand.substring(2).toInt();
+    if (incomingCommand.substring(0,4) == "pdkp") {
+      peltierPID.setDkp(incomingCommand.substring(4).toFloat());
+    }
+    if (incomingCommand.substring(0,4) == "pdki") {
+      peltierPID.setDki(incomingCommand.substring(4).toFloat());
+    }
+    if (incomingCommand.substring(0,4) == "pdkd") {
+      peltierPID.setDkd(incomingCommand.substring(4).toFloat());
+    }
+    if (incomingCommand.substring(0,3) == "pia") {
+      avgPTempSampleSize = incomingCommand.substring(3).toInt();
+    }
+    if (incomingCommand.substring(0,3) == "poa") {
+      avgPPWMSampleSize = incomingCommand.substring(3).toInt();
     }
     if (incomingCommand.substring(0,3) == "plc") {
       limitPWMC = incomingCommand.substring(3).toInt();
@@ -181,10 +263,13 @@ void loop() {
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
 
+  avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
+  
+  
   // for graphing system state
   Serial.print(avgPTemp);
   Serial.print(" ");
-  Serial.print(peltierPWM);
+  Serial.print(avgPPWM);
   Serial.print(" ");
   Serial.print(analogRead(A1) * 0.065168);
   Serial.print("\n");
@@ -195,18 +280,18 @@ void loop() {
     analogWrite(fpwm, 1024);
     analogWrite(ppwm, 0);
     peltierT.resetTemp();
+    avgPPWM = peltierPWM; // fixes nan error
     return;
   }
 
   // convert pieltierDelta to pwm, inA, inB, and fan signals
   analogWrite(ppwm, abs(peltierPWM));
+  analogWrite(fpwm, 255);
   if (peltierPWM > 0) {
     digitalWrite(inA, HIGH);
     digitalWrite(inB, LOW);
-    analogWrite(fpwm, 0);
   } else {
     digitalWrite(inA, LOW);
     digitalWrite(inB, HIGH);
-    analogWrite(fpwm, abs(peltierPWM));
   }
 }

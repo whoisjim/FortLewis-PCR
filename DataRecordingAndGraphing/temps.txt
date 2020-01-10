@@ -1,0 +1,6 @@
+55 to 95
+say at each for 20 sec for 35 cycles
+
+
+55 to 95
+say at each for 10 sec for 35 cycles
