@@ -5,6 +5,7 @@ const int ppwm = 11; // pin connected to PWM on VHN5019
 const int fpwm = 10; // pin connected to PWM on fan
 const int thermP = A0; // pin connected to thermal resistor neetwork. see elegooThermalResistorSch.png
 const int LidP = A1; // pin for thermal resistor conneccted to lid
+const int cPin = A2; // for curent recording
 const int ssr = 8; // solid state relay signal
 
 bool power = false; // software on/off
@@ -206,12 +207,13 @@ void setup() {
   pinMode(ppwm, OUTPUT);
   pinMode(fpwm, OUTPUT);
   pinMode(thermP, INPUT);
-
+  pinMode(ssr, OUTPUT);
   // set initial pin state to off
   digitalWrite(inA, LOW);
   digitalWrite(inB, LOW);
   analogWrite(ppwm, 0);
   analogWrite(fpwm, 0);
+  digitalWrite(ssr,LOW);
 }
 
 void loop() {
@@ -310,7 +312,7 @@ void loop() {
   Serial.print(" ");
   Serial.print(avgPPWM);
   Serial.print(" ");
-  Serial.print(analogRead(A1) * 0.065168);
+  Serial.print(analogRead(cPin) * 0.065168);
   Serial.print(" ");
   Serial.print(currentLidTemp);
   Serial.print("\n");
@@ -325,7 +327,7 @@ void loop() {
       digitalWrite(ssr,LOW);
     }
   } else if ((currentLidTemp - LastLidTemp)>0){
-    if(currentLidTemp >=110){ // turn off pad if over 110... set to 30 for example
+    if(currentLidTemp >=110){ // turn off pad if over 110
       digitalWrite(ssr,LOW);
     } else if(currentLidTemp <= 110){
       digitalWrite(ssr,HIGH);
