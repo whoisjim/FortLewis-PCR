@@ -16,13 +16,16 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.duration = duration
 
     class cycleQue():
-        def __init__(self):
+        def __init__(self, tolerance):
             self.cycleStartTime = None
             self.done = False
             self.cycles = []
+            self.arrived = False
+            self.tolerance = tolerance
         def add(self, newCycle):
             self.cycles.append(newCycle)
-        def getTemp(self):
+            self.updated = True
+        def getTemp(self, curentTemp):
             if self.cycleStartTime == None:
                 self.cycleStartTime = time.time()
             if self.cycles == []:
@@ -30,9 +33,14 @@ class PCRDebugApp(QtGui.QMainWindow):
             if len(self.cycles) == 1:
                 return self.cycles[0].temperature
                 self.done = True
+            if not self.arrived:
+                if curentTemp < self.cycles[0].temperature + self.tolerance and curentTemp > self.cycles[0].temperature - self.tolerance:
+                    self.cycleStartTime = time.time();
+                    self.arrived = True
+                return self.cycles[0].temperature
             if self.cycles[0].duration < time.time() - self.cycleStartTime:
-                self.cycleStartTime += self.cycles[0].duration
                 self.cycles.pop(0)
+                self.arrived = False
             return self.cycles[0].temperature
         def clear(self):
             self.cycles = []
@@ -58,7 +66,7 @@ class PCRDebugApp(QtGui.QMainWindow):
            self.pSignal.append(0)
         self.X = np.arange(2000) # generate X positions for realtime graphs
         
-        self.cycles = self.cycleQue() # create empty cycle que
+        self.cycles = self.cycleQue(2) # create empty cycle que with a tolerance of 2 degrees
         
         # for data recording
         self.logStartTime = 0
@@ -111,6 +119,8 @@ class PCRDebugApp(QtGui.QMainWindow):
         tempText = QtGui.QLabel("Temperature", self)
         durText = QtGui.QLabel("Duration", self)
         self.cycleNumTextBox = QtGui.QLineEdit(self)
+        self.cycleNumText = QtGui.QLabel("0")
+        self.cycleNum = 0
         
         self.cycleTextBoxes = [(QtGui.QLineEdit(self),QtGui.QLineEdit(self)),(QtGui.QLineEdit(self),QtGui.QLineEdit(self)),(QtGui.QLineEdit(self),)]
         self.updateCycleUi()
@@ -118,6 +128,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.cycleLayout.addWidget(cycleAddBtn, 0, 0)
         self.cycleLayout.addWidget(cycleRmBtn, 0, 1)
         self.cycleLayout.addWidget(self.cycleNumTextBox, 1, 0)
+        self.cycleLayout.addWidget(self.cycleNumText, 1, 1)
         self.cycleLayout.addWidget(tempText, 2, 0)
         self.cycleLayout.addWidget(durText, 2, 1)
         
@@ -232,6 +243,8 @@ class PCRDebugApp(QtGui.QMainWindow):
                     for i in range(len(self.cycleTextBoxes) - 1):
                         self.cycles.add(self.cycle(float(self.cycleTextBoxes[i][0].text()), float(self.cycleTextBoxes[i][1].text())))
                 self.cycles.add(self.cycle(float(self.cycleTextBoxes[len(self.cycleTextBoxes) - 1][0].text()), 1))
+                self.cycleNum = 0
+                self.cycleNumText.setText("0")
             except:
                 self.isCycle = False
                 self.cycleBtn.setText("Cycle")
@@ -272,11 +285,14 @@ class PCRDebugApp(QtGui.QMainWindow):
             
             # update targetPeltierTemp from cycle que
             if self.isCycle:
-                self.targetPeltierTemp = self.cycles.getTemp()
+                self.targetPeltierTemp = self.cycles.getTemp(self.CPTemp[len(self.CPTemp) - 1])
             
             # send arduino command for updated target temperature
             if self.targetPeltierTemp != self.TPTemp[len(self.TPTemp) - 1]: # sends command for temp set
                 self.port.write(("pt" + str(self.targetPeltierTemp) + "\n").encode())
+                if self.isCycle:
+                    self.cycleNumText.setText(str(self.cycleNum / (len(self.cycleTextBoxes) - 1)))
+                    self.cycleNum += 1
             
             # update data for realtime graphs
             self.TPTemp.append(self.targetPeltierTemp) 

@@ -3,7 +3,7 @@ const int inA = 13; // pin connected to INA on VHN5019
 const int inB = 12; // pin connected to INB on VHN5019
 const int ppwm = 11; // pin connected to PWM on VHN5019
 const int fpwm = 10; // pin connected to PWM on fan
-const int thermP = A0; // pin connected to thermal resistor neetwork. see elegooThermalResistorSch.png
+const int thermP = A0; // pin connected to block thermal resistor neetwork. see elegooThermalResistorSch.png
 const int LidP = A1; // pin for thermal resistor conneccted to lid
 const int cPin = A2; // for curent recording
 const int ssr = 8; // solid state relay signal
@@ -207,6 +207,7 @@ void setup() {
   pinMode(ppwm, OUTPUT);
   pinMode(fpwm, OUTPUT);
   pinMode(thermP, INPUT);
+  pinMode(LidP, INPUT);
   pinMode(ssr, OUTPUT);
   // set initial pin state to off
   digitalWrite(inA, LOW);
@@ -301,7 +302,9 @@ void loop() {
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 1024);
     analogWrite(ppwm, 0);
-    
+    digitalWrite(ssr, LOW);
+
+    peltierPID.reset();
     peltierT.resetTemp();
     avgPPWM = peltierPWM; // fixes nan error
     return;
