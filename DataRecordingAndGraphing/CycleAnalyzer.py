@@ -40,31 +40,33 @@ while times[0] < startTime:
     power.pop(0)
 times = [t - startTime for t in times] # move times to start time
 
-cycleDiv = [(0, 95),]
+cycleDiv = [(0, 94),]
+temps = []
 
 for i in range(1, len(times)):
     if targetTemp[i] != targetTemp[i-1]:
         cycleDiv.append((i, targetTemp[i]))
 
-print("Number of cycles = ", len(cycleDiv)/2)
+for i in cycleDiv:
+    if i[1] not in temps:
+        temps.append(i[1])
 
-avgHTime = 0
-avgCTime = 0
-cycleLength = 20
+cycleNum = (len(cycleDiv) + 1) / len(temps)
+print("temps", temps)
+print("Number of cycles = ", cycleNum)
 
-for i in range(len(cycleDiv) - 1):
-    if cycleDiv[i][1] == 55:
-        avgCTime += times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength
-    else:
-        avgHTime += times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength
+averages = numpy.zeros(len(temps)).tolist()
+cycleLength = [20, 60, 60]
 
-avgHTime /= len(cycleDiv)/2
-avgCTime /= len(cycleDiv)/2
+for i in range(len(temps) - 1, len(cycleDiv) - (1 + len(temps))):
+    for j in range(len(temps)):
+        if cycleDiv[i][1] == temps[j]:
+            averages[j] += times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength[j]
 
-print("Avg Heating", avgHTime, "s")
-print("Avg cooling", avgCTime, "s")
 
-print("time for n cycles")
+for i in range(len(averages)):
+    print("temp", temps[i], averages[i] / cycleNum - 2, "s")
+
 for i in range(len(cycleDiv)):
     if cycleDiv[i][1] == 95:
         print(i, times[cycleDiv[i][0]] // 60, times[cycleDiv[i][0]] % 60)
