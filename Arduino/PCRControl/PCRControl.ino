@@ -18,7 +18,7 @@ float avgPTemp = 0; // last average for peltier temperature
 int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
 
 float avgPPWM = 0; // last average for peltier temperature
-int avgPPWMSampleSize = 2; // sample size for peltier temperature moving average
+int avgPPWMSampleSize = 4; // sample size for peltier temperature moving average
 
 double targetPeltierTemp = 40; // the tempature the system will try to move to, in degrees C
 double currentPeltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
@@ -103,11 +103,26 @@ class dualPid {
     pError = targetTemp - currentTemp;
     iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
     dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
-    if (75 > targetTemp) {
-      return dkp * pError + dki * iError + dkd * dError;
+    if (70 > targetTemp) { // good
+      return 19 * pError + 0.2 * iError + 10000000 * dError;
+    } else if (80 > targetTemp) {
+      return 9 * pError + 0.17 * iError + 10000000 * dError;
     } else {
-      return ikp * pError + iki * iError + ikd * dError;
+      return 9 * pError + 0.40 * iError + 10000000 * dError;
     }
+
+    /*
+    if (70 > targetTemp) { // low
+      return 30 * pError + 0.75 * iError + 100000 * dError;
+    } else if (80 > targetTemp) { // med
+      return 5 * pError + 0.25 * iError + 10000000 * dError;
+    } else { // high
+      return 5 * pError + 0.5 * iError + 10000000 * dError;
+    }
+
+
+    //(10, 0.5, 10000000, 40, 0.75, 0)
+    */
   }
   
   void setIkp(float value) {
@@ -192,7 +207,7 @@ TempSensor peltierT(thermP);
 TempSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-dualPid peltierPID(20, 0.75, 10000000, 40, 0.5, 0); // 5, 2, 4000, 8, 2, 4000 data43
+dualPid peltierPID(10, 0.5, 10000000, 40, 0.75, 0); // 5, 2, 4000, 8, 2, 4000 data43
 
 void setup() {
   // setup serial
@@ -282,10 +297,21 @@ void loop() {
 
   LidT.resetTemp();
   currentLidTemp = LidT.getTemp(); // read lid temp
+  peltierT.resetTemp();
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
+
+  currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
+  
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
+
+  // Lid control
+  if(currentLidTemp < 90){
+    digitalWrite(ssr, HIGH);
+  } else {
+    digitalWrite(ssr, LOW);
+  }
 
   avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
   
@@ -302,7 +328,7 @@ void loop() {
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 1024);
     analogWrite(ppwm, 0);
-    digitalWrite(ssr, LOW);
+    //digitalWrite(ssr, LOW);
 
     peltierPID.reset();
     peltierT.resetTemp();
@@ -319,26 +345,6 @@ void loop() {
   Serial.print(" ");
   Serial.print(currentLidTemp);
   Serial.print("\n");
-
-  // Lid control
-  if((currentLidTemp- LastLidTemp)<=0){
-    if(currentLidTemp >=110){ // turn off pad if over 110
-      digitalWrite(ssr,LOW);
-    } else if(currentLidTemp <= 90){
-      digitalWrite(ssr,HIGH);
-    } else {
-      digitalWrite(ssr,LOW);
-    }
-  } else if ((currentLidTemp - LastLidTemp)>0){
-    if(currentLidTemp >=110){ // turn off pad if over 110
-      digitalWrite(ssr,LOW);
-    } else if(currentLidTemp <= 110){
-      digitalWrite(ssr,HIGH);
-    } else {
-      digitalWrite(ssr,LOW);
-    }
-  } // end increasing lid situation
-  LastLidTemp = currentLidTemp;
 
   // pieltier controll
   // convert pieltierDelta to pwm, inA, inB, and fan signals
