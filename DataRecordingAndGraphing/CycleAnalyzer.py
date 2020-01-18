@@ -58,15 +58,19 @@ print("Number of cycles = ", cycleNum)
 averages = numpy.zeros(len(temps)).tolist()
 cycleLength = [20, 60, 60]
 
-for i in range(len(temps) - 1, len(cycleDiv) - (1 + len(temps))):
+for i in range(len(temps) - 1, len(cycleDiv) - (len(temps))):
     for j in range(len(temps)):
         if cycleDiv[i][1] == temps[j]:
             averages[j] += times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength[j]
 
-
 for i in range(len(averages)):
-    print("temp", temps[i], averages[i] / cycleNum - 2, "s")
+    print("temp", temps[i], averages[i] / 33, "s")
 
+avgCTime = 0
 for i in range(len(cycleDiv)):
-    if cycleDiv[i][1] == 95:
-        print(i, times[cycleDiv[i][0]] // 60, times[cycleDiv[i][0]] % 60)
+    if cycleDiv[i][1] == 94:
+        try:
+            avgCTime += times[cycleDiv[i+3][0]] - times[cycleDiv[i][0]]
+        except:
+            pass
+print("Average cycle time", avgCTime / 34, "s")
