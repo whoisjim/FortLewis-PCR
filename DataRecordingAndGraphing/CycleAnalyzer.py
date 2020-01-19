@@ -55,16 +55,16 @@ cycleNum = (len(cycleDiv) + 1) / len(temps)
 print("temps", temps)
 print("Number of cycles = ", cycleNum)
 
-averages = numpy.zeros(len(temps)).tolist()
+averages = [[],[],[]]
 cycleLength = [20, 60, 60]
 
 for i in range(len(temps) - 1, len(cycleDiv) - (len(temps))):
     for j in range(len(temps)):
         if cycleDiv[i][1] == temps[j]:
-            averages[j] += times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength[j]
+            averages[j].append(times[cycleDiv[i+1][0]] - times[cycleDiv[i][0]] - cycleLength[j])
 
 for i in range(len(averages)):
-    print("temp", temps[i], averages[i] / 33, "s")
+    print("temp", temps[i], sum(averages[i]) / 33, "+-", 1.960 * numpy.sqrt(sum([(num - sum(averages[i]) / 33) ** 2 for num in averages[i]]) / 33) / numpy.sqrt(33), "s, Ci 95")
 
 avgCTime = 0
 for i in range(len(cycleDiv)):
@@ -74,3 +74,6 @@ for i in range(len(cycleDiv)):
         except:
             pass
 print("Average cycle time", avgCTime / 34, "s")
+print("peak wats", max(power), "w")
+print("Average wats", sum(power) / len(power), "w")
+

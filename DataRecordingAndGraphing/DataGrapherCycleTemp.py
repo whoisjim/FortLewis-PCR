@@ -37,7 +37,6 @@ times = [t - startTime for t in times] # move times to start time
 
 # plot data and format
 matplotlib.rcParams['font.serif'] = "Times New Roman"
-# Then, "ALWAYS use sans-serif fonts"
 matplotlib.rcParams['font.family'] = "serif"
 
 ticSpace = 15

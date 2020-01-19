@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy
 startTime = 0
@@ -126,7 +127,11 @@ while times[3][len(times[3]) - 1] > endTime:
 times[3] = [t - startTime for t in times[3]] # move times to start time
 
 # plot data and format
-fig = plt.figure(figsize=(20, 6))
+matplotlib.rcParams['font.serif'] = "Times New Roman"
+matplotlib.rcParams['font.family'] = "serif"
+
+ticSpace = 10
+fig = plt.figure(figsize=(5, 3))
 tempPlot = fig.add_subplot(211)
 signalPlot = fig.add_subplot(212)
 tempPlot.plot(times[0], numData[0][0], c = "#A7C1AE", linewidth = 2.0)
@@ -136,7 +141,9 @@ tempPlot.plot(times[3], numData[3][0], c = "#2E4052", linewidth = 2.0)
 tempPlot.axis([0, endTime - startTime, None, None])
 tempPlot.set_ylabel("Temperature (C)")
 tempPlot.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
-tempPlot.legend(("2 @ 100%, 14.76v", "4 @ 100%, 14.76v", "4 @ 50%, 8.54v", "4 @ 25%, 4.63v"), loc="lower right")
+tempPlot.set_xticks([i for i in range(0, int(endTime - startTime), ticSpace)])
+tempPlot.set_yticks([i for i in range(30, 70, ticSpace)])
+#tempPlot.legend(("2 @ 100%, 14.76v", "4 @ 100%, 14.76v", "4 @ 50%, 8.54v", "4 @ 25%, 4.63v"), loc="lower right")
 tempPlot.grid(linestyle="-")
 signalPlot.plot(times[0], [14.76 * numData[0][2][i] for i in range(len(numData[0][0]))], c = "#A7C1AE", linewidth = 2.0)
 signalPlot.plot(times[1], [14.76 * numData[1][2][i] for i in range(len(numData[1][0]))], c = "#867EB6", linewidth = 2.0)
@@ -145,8 +152,9 @@ signalPlot.plot(times[3], [ 4.63 * numData[3][2][i] for i in range(len(numData[3
 signalPlot.axis([0, endTime - startTime, None, None])
 signalPlot.set_xlabel("Time (s)")
 signalPlot.set_ylabel("Power Consumed (W)")
-signalPlot.legend(("2 @ 100%, 14.76v", "4 @ 100%, 14.76v", "4 @ 50%, 8.54v", "4 @ 25%, 4.63v"), loc="lower right")
+signalPlot.legend(("2 @ 14.76v", "4 @ 14.76v", "4 @ 8.54v", "4 @ 4.63v"), loc="lower right")
 signalPlot.grid(linestyle="-")
+signalPlot.set_xticks([i for i in range(0, int(endTime - startTime), ticSpace)])
 fig.tight_layout()
-fig.savefig("efficiency.png", dpi = 100)
+fig.savefig("efficiency.png", dpi = 600)
 plt.show()
