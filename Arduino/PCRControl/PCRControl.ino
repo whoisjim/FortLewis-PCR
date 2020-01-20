@@ -6,7 +6,7 @@ const int fpwm = 10; // pin connected to PWM on fan
 const int thermP = A0; // pin connected to block thermal resistor neetwork. see elegooThermalResistorSch.png
 const int LidP = A1; // pin for thermal resistor conneccted to lid
 const int cPin = A2; // for curent recording
-const int ssr = 10; // solid state relay signal
+const int ssr = 9; // solid state relay signal
 
 bool power = false; // software on/off
 
