@@ -132,7 +132,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.cycleLayout.addWidget(tempText, 2, 0)
         self.cycleLayout.addWidget(durText, 2, 1)
         
-        sendText = QtGui.QLabel("commands\noff\n  power off\non\n  power on\npt[floatValue]\n  sets targetPeltierTemp to floatValue\npk[p,d,i][value]\n  sets pid constants for peltier\npa[intValue]\n  sets sample size for peltier moving average", self)
+        sendText = QtGui.QLabel("", self)
         
         self.plotPT = pg.PlotWidget()
         self.plotPT.hideAxis("bottom")
@@ -150,6 +150,8 @@ class PCRDebugApp(QtGui.QMainWindow):
         self.plotPS.setYRange(-255, 255)
         self.plotPS.setLabel("left", "PWM", '', **style)
         
+        self.lidTempText = QtGui.QLabel("temp")
+        
         windowLayout.addWidget(comText, 0, 0)
         windowLayout.addWidget(self.comTextBox, 0, 1)
         windowLayout.addWidget(self.comBtn, 0, 2, 1, 2)
@@ -164,6 +166,7 @@ class PCRDebugApp(QtGui.QMainWindow):
         windowLayout.addWidget(sendText, 7, 0, 2, 4)
         windowLayout.addWidget(self.plotPT, 0, 4, 10, 4)
         windowLayout.addWidget(self.plotPS, 0, 8, 10, 4)
+        windowLayout.addWidget(self.lidTempText, 8, 0)
 
     def comConnect(self): # connects and disconnects com port
         if self.connected and not self.collect:
@@ -305,7 +308,10 @@ class PCRDebugApp(QtGui.QMainWindow):
                 self.pSignal.append(self.pSignal[len(self.pSignal) - 1])
             self.CPTemp.pop(0)
             self.pSignal.pop(0)
-        
+            try:
+                self.lidTempText.setText(str(data[3]))
+            except:
+                pass
         # update realtime graphs
         self.plotPT.setXRange(2000 - self.zoom.value(), 2000)
         self.plotPS.setXRange(2000 - self.zoom.value(), 2000)
