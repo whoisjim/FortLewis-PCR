@@ -75,5 +75,10 @@ for i in range(len(cycleDiv)):
             pass
 print("Average cycle time", avgCTime / 34, "s")
 print("peak wats", max(power), "w")
-print("Average wats", sum(power) / len(power), "w")
+print("Average wats", sum(power) / len(power))
+print("+-", 1.960 * numpy.sqrt(sum([(num - 55.97) ** 2 for num in power]) / len(power)) / numpy.sqrt(len(power)), "w, Ci 95")
+
+print("sample rate =", len(power) / elapsedTime)
+
+
 

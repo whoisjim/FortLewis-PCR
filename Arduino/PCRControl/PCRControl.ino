@@ -110,19 +110,6 @@ class dualPid {
     } else {
       return 9 * pError + 0.40 * iError + 10000000 * dError;
     }
-
-    /*
-    if (70 > targetTemp) { // low
-      return 30 * pError + 0.75 * iError + 100000 * dError;
-    } else if (80 > targetTemp) { // med
-      return 5 * pError + 0.25 * iError + 10000000 * dError;
-    } else { // high
-      return 5 * pError + 0.5 * iError + 10000000 * dError;
-    }
-
-
-    //(10, 0.5, 10000000, 40, 0.75, 0)
-    */
   }
   
   void setIkp(float value) {
@@ -157,47 +144,16 @@ class dualPid {
 class TempSensor {
   private:
   int pin;
-  double temp;
-  double lastK;
   
   public:
   TempSensor(int iPin) { 
     pin = iPin; // the pin that conected to the tempature network
   }
-  
-  void resetTemp() { // resets saved privois tempature, nessasary if it has been a while since last getTemp()
-    int tempReading = analogRead(pin);
-    double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
-    lastK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK );
-  }
 
   double getTemp() { // returns the tempature from thermoristor connected to thermP in degrees C, includes noise reduction
-    static double spike0u;
     int tempReading = analogRead(pin);
     double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
-
-    //Serial.print(tempK - 273.15);
-    //Serial.print(" ");
-    
-    // noise peak removal
-    
-    if (tempK - lastK > 0.5 + abs(lastK -299.15) * 0.1) {
-      if (spike0u == 0) {
-        spike0u = tempK - lastK;
-      }
-      tempK -= spike0u;
-    } else {
-      spike0u = 0;
-    }
-
-    if (tempK - lastK < -10) {
-      tempK += spike0u;
-      spike0u = 0;
-    }
-    
-    lastK = tempK;
-    
     return (tempK - 273.15); // convert kelvin to celcius
   }
 };
@@ -207,7 +163,7 @@ TempSensor peltierT(thermP);
 TempSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-dualPid peltierPID(10, 0.5, 10000000, 40, 0.75, 0); // 5, 2, 4000, 8, 2, 4000 data43
+dualPid peltierPID(10, 0.5, 10000000, 40, 0.75, 0);
 
 void setup() {
   // setup serial
@@ -295,9 +251,7 @@ void loop() {
     }
   }
 
-  LidT.resetTemp();
   currentLidTemp = LidT.getTemp(); // read lid temp
-  peltierT.resetTemp();
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
 
   currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
@@ -331,7 +285,6 @@ void loop() {
     //digitalWrite(ssr, LOW);
 
     peltierPID.reset();
-    peltierT.resetTemp();
     avgPPWM = peltierPWM; // fixes nan error
     return;
   }
