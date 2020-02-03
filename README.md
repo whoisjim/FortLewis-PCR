@@ -1,8 +1,20 @@
-# FortLewis-PCR
+# To do:
+## software
+- [ ] Develop Android app
+- [ ] Develop Raspberry Pi app
+- [ ] Move cycle manager to Arduino script
+- [ ] Generalize PID tuneing
+- [ ] Calabrate block temperature
+## Hardware
+- [ ] Redo heating block
+- [ ] Redo heatsink
+- [ ] Create PCB scematic
+- [ ] Design chase
 
-Repo for FortLewis PCR research, Headded by Dr.Li
+# Current Tasks:
+## James Ferguson
+- Generalize PID tuneing
+- Calabrate block temperature
 
-## Members:
-Jesse Duran
-
-James Ferguson
+## Jesse Duran
+- Develop Android app
