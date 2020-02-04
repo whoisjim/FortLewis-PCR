@@ -7,6 +7,7 @@ import numpy as np
 import serial
 import sip
 import time
+from datetime import datetime
 
 class PCRDebugApp(QtGui.QMainWindow):
     
@@ -210,6 +211,7 @@ class PCRDebugApp(QtGui.QMainWindow):
                     break
             self.logFile = open(str(fileName + str(fileIndex) + ".txt"), 'w')
             self.logStartTime = time.time()
+            self.logFile.write(datetime.now().strftime("%H:%M:%S.%f") + "\n")
 
     def setTemp(self): # sets the systems target temperature
         self.targetPeltierTemp = float(self.setTextBox.text())
