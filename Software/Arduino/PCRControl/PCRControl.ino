@@ -8,7 +8,8 @@ const int LidP = A1; // pin for thermal resistor conneccted to lid
 const int cPin = A2; // for curent recording
 const int ssr = 9; // solid state relay signal
 
-bool power = false; // software on/off
+bool pPower = false; // software pielter on/off
+bool lPower = false; // software lid on/off
 
 double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
 int limitPWMH = 255;
@@ -70,28 +71,13 @@ class pid {
   }
 };
 
-class dualPid {
+class rampPid {
   private:
-  double ikp; // higher moves faster
-  double iki; // higher fixes ofset and faster
-  double ikd; // higher settes faster but creastes ofset
-  double dkp; // higher moves faster
-  double dki; // higher fixes ofset and faster
-  double dkd; // higher settes faster but creastes ofset
   unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
   double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
   double iErrorLimit = 127;
   
   public:
-  dualPid (double proportionalGainI = 1, double integralGainI = 0, double derivativeGainI = 0, double proportionalGainD = 1, double integralGainD = 0, double derivativeGainD = 0) {
-    ikp = proportionalGainI; // higher moves faster
-    iki = integralGainI; // higher fixes ofset and faster
-    ikd = derivativeGainI; // higher settes faster but creastes ofset and amplifies noise
-    dkp = proportionalGainD; // higher moves faster
-    dki = integralGainD; // higher fixes ofset and faster
-    dkd = derivativeGainD; // higher settes faster but creastes ofset and amplifies noise
-  }
-
   void reset(){
     iError = 0;
   }
@@ -103,37 +89,14 @@ class dualPid {
     pError = targetTemp - currentTemp;
     iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
     dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
-    if (70 > targetTemp) { // good
+    //return (289 / 6 - (5 * targetTemp) / 12) * pError + (-0.383333 + 0.00833333 * targetTemp) * iError + 10000000 * dError;
+    if (70 > targetTemp) {
       return 19 * pError + 0.2 * iError + 10000000 * dError;
     } else if (80 > targetTemp) {
       return 9 * pError + 0.17 * iError + 10000000 * dError;
     } else {
       return 9 * pError + 0.40 * iError + 10000000 * dError;
     }
-  }
-  
-  void setIkp(float value) {
-    ikp = value;
-  }
-  
-  void setIki(float value) {
-    iki = value;
-  }
-  
-  void setIkd(float value) {
-    ikd = value;
-  }
-
-  void setDkp(float value) {
-    dkp = value;
-  }
-  
-  void setDki(float value) {
-    dki = value;
-  }
-  
-  void setDkd(float value) {
-    dkd = value;
   }
 };
 
@@ -163,7 +126,7 @@ TempSensor peltierT(thermP);
 TempSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-dualPid peltierPID(10, 0.5, 10000000, 40, 0.75, 0);
+rampPid peltierPID;
 
 void setup() {
   // setup serial
@@ -189,53 +152,28 @@ void setup() {
 }
 
 void loop() {
-  // commands
-  // off
-  //   power off
-  // on
-  //   power on
-  // pt[floatValue]
-  //   sets targetPeltierTemp to floatValue
-  // pk[p,d,i][value]
-  //   sets pid constants for peltier
-  // pa[intValue]
-  //   sets sample size for peltier moving average
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
-    if (incomingCommand == "off\n") {
-      power = false;
+    if (incomingCommand == "offl\n") {
+      lPower = false;
+    } else if (incomingCommand == "off\n") {
+      pPower = false;
     } else if (incomingCommand.substring(0,3) == "off") {
-      power = false;
+      pPower = false;
       targetPeltierTemp = incomingCommand.substring(3).toFloat();
     }
-    if (incomingCommand == "on\n") {
+    if (incomingCommand == "onl\n") {
+      lPower = true;
+    } else if (incomingCommand == "on\n") {
       peltierPID.reset();
-      power = true;
+      pPower = true;
     } else if (incomingCommand.substring(0,2) == "on") {
       peltierPID.reset();
-      power = true;
+      pPower = true;
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
     }
     if (incomingCommand.substring(0,2) == "pt") {
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
-    }
-    if (incomingCommand.substring(0,4) == "pikp") {
-      peltierPID.setIkp(incomingCommand.substring(4).toFloat());
-    }
-    if (incomingCommand.substring(0,4) == "piki") {
-      peltierPID.setIki(incomingCommand.substring(4).toFloat());
-    }
-    if (incomingCommand.substring(0,4) == "pikd") {
-      peltierPID.setIkd(incomingCommand.substring(4).toFloat());
-    }
-    if (incomingCommand.substring(0,4) == "pdkp") {
-      peltierPID.setDkp(incomingCommand.substring(4).toFloat());
-    }
-    if (incomingCommand.substring(0,4) == "pdki") {
-      peltierPID.setDki(incomingCommand.substring(4).toFloat());
-    }
-    if (incomingCommand.substring(0,4) == "pdkd") {
-      peltierPID.setDkd(incomingCommand.substring(4).toFloat());
     }
     if (incomingCommand.substring(0,3) == "pia") {
       avgPTempSampleSize = incomingCommand.substring(3).toInt();
@@ -259,22 +197,26 @@ void loop() {
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
-
+  
   // Lid control
-  if(currentLidTemp < 90){
-    digitalWrite(ssr, HIGH);
+  if (lPower) {
+    if(currentLidTemp < 90){ 
+      digitalWrite(ssr, HIGH);
+    } else {
+      digitalWrite(ssr, LOW);
+    }
   } else {
     digitalWrite(ssr, LOW);
   }
 
   avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
   
-  if (!power || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
+  if (!pPower || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
     // for graphing system state
     Serial.print(avgPTemp);
     Serial.print(" 0 ");
-    Serial.print(analogRead(A1) * 0.065168);
-    Serial.print(" ");
+    //Serial.print(analogRead(A1) * 0.065168);
+    //Serial.print(" ");
     Serial.print(currentLidTemp);
     Serial.print("\n");
     
@@ -294,8 +236,8 @@ void loop() {
   Serial.print(" ");
   Serial.print(avgPPWM);
   Serial.print(" ");
-  Serial.print(analogRead(cPin) * 0.065168);
-  Serial.print(" ");
+  //Serial.print(analogRead(cPin) * 0.065168);
+  //Serial.print(" ");
   Serial.print(currentLidTemp);
   Serial.print("\n");
 
