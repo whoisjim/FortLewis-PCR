@@ -66,7 +66,9 @@ while tData[5][len(tData[5]) - 1] > endT:
         tData[i].pop(len(tData[i]) - 1)
 tData[5] = [t - startT for t in tData[5]] # move times to start time
 
-tAvg = [sum([tData[j][i] for j in range(5)])/5 for i in range(len(tData[0]))]
+tData = tuple([tuple(data) for data in tData])
+
+tAvg = tuple([sum([tData[j][i] for j in range(5)])/5 for i in range(len(tData[0]))])
 
 # plot data and format
 fig, axs = plt.subplots(2, 1)
@@ -90,15 +92,34 @@ def getClose(data, time, target):
             return data[i]
     return data[-1]
 
-closeData = [getClose(readTemp, times, target) for target in tData[5]] 
+closeData = tuple([getClose(readTemp, times, target) for target in tData[5]]) 
+
 
 def eq(x, m, b):
     return m * x + b
 
+# estimate optimal delay
+sigma = [1000000, 1000000]
+delay = 250
+while True:
+    delay += 1
+    lastSigma =  sigma
+    tAvgt = tAvg[delay: -1]
+    closeDatat = closeData[0: -1 - delay]
+    popt, pcov = curve_fit(eq, closeDatat, tAvgt)
+    #popt, pcov = curve_fit(eq, readTemp[0:len(tDatat[0])], tAvgt)
+    sigma = np.sqrt(np.diag(pcov))
+    if lastSigma[1] < sigma[1]:
+        delay -= 1
+        break
+
+tAvg = tAvg[delay: -1]
+closeData = closeData[0: -1 - delay]
 popt, pcov = curve_fit(eq, closeData, tAvg)
 #popt, pcov = curve_fit(eq, readTemp[0:len(tData[0])], tAvg)
 
-print("y =", popt[0], "* x +", popt[1])
+print("y =", popt[0], "* x +", popt[1], ": Delay =", delay, "pts")
+print(np.sqrt(np.diag(pcov)))
 
 points = np.array([numpy.asarray(closeData), numpy.asarray(tAvg)]).T.reshape(-1, 1, 2)
 #points = np.array([numpy.asarray(readTemp[0:len(tData[0])]), numpy.asarray(tAvg)]).T.reshape(-1, 1, 2)
@@ -112,6 +133,7 @@ line = axs[1].add_collection(lc)
 x = (50, 110)
 y = [eq(i, *popt) for i in x]
 axs[1].plot(x, y, c = "k", ls = "--", lineWidth = 2.0)
+axs[0].set_title("y = " + str(popt[0]) + " * x + " + str(popt[1]) + " : Delay = " + str(delay) + "pts")
 fig.tight_layout()
 fig.savefig(fileName + ".png", dpi = 500)
 plt.show()
