@@ -22,10 +22,10 @@ data = [float(num) for num in PCRFile.readline().split()]
 while data[0] != "e":
     try:
         data = [float(num) for num in data]
-        if len(data) == 5:
+        if len(data) == 4:
     	    readTemp.append(data[1])
     	    targetTemp.append(data[0])
-    	    signal.append(data[4])
+    	    signal.append(data[2])
     except:
         pass
     data =  PCRFile.readline().split()
@@ -66,45 +66,52 @@ while tData[5][len(tData[5]) - 1] > endT:
         tData[i].pop(len(tData[i]) - 1)
 tData[5] = [t - startT for t in tData[5]] # move times to start time
 
+tAvg = [sum([tData[j][i] for j in range(5)])/5 for i in range(len(tData[0]))]
+
 # plot data and format
 fig, axs = plt.subplots(2, 1)
 for i in range(5):
-    axs[0].plot(tData[5], tData[i], c = "k", linewidth = 1.0)
+    axs[0].plot(tData[5], tData[i], c = "k", ls = "--", linewidth = 1)
+axs[0].plot(tData[5], tAvg, c = "k", lineWidth = 2.0)
 
 points = np.array([numpy.asarray(times), numpy.asarray(readTemp)]).T.reshape(-1, 1, 2)
 segments = np.concatenate([points[:-1], points[1:]], axis=1)
 lc = LineCollection(segments, cmap='jet')
 lc.set_array(numpy.asarray(times))
-lc.set_linewidth(1)
+lc.set_linewidth(2)
 line = axs[0].add_collection(lc)
 
-axs[0].plot(times, targetTemp, c = "r", ls = "--", linewidth = 1.0)
+axs[0].plot(times, targetTemp, c = "r", ls = "--", linewidth = 2.0)
 axs[0].axis([0, endT - startT, None, None])
 
 def getClose(data, time, target):
     for i in range(len(time)):
         if target < time[i]:
             return data[i]
+    return data[-1]
 
-#closeData = [getClose(readTemp, times, target) for target in tData[5]] 
+closeData = [getClose(readTemp, times, target) for target in tData[5]] 
 
 def eq(x, m, b):
     return m * x + b
-popt, pcov = curve_fit(eq, readTemp[0:len(tData[0])], tData[1])
+
+popt, pcov = curve_fit(eq, closeData, tAvg)
+#popt, pcov = curve_fit(eq, readTemp[0:len(tData[0])], tAvg)
+
 print("y =", popt[0], "* x +", popt[1])
 
-points = np.array([numpy.asarray(readTemp[0:len(tData[0])]), numpy.asarray(tData[1])]).T.reshape(-1, 1, 2)
+points = np.array([numpy.asarray(closeData), numpy.asarray(tAvg)]).T.reshape(-1, 1, 2)
+#points = np.array([numpy.asarray(readTemp[0:len(tData[0])]), numpy.asarray(tAvg)]).T.reshape(-1, 1, 2)
+
 segments = np.concatenate([points[:-1], points[1:]], axis=1)
 lc = LineCollection(segments, cmap='jet')
 lc.set_array(numpy.asarray(tData[5]))
-lc.set_linewidth(1)
+lc.set_linewidth(2)
 line = axs[1].add_collection(lc)
 
-#func.plot(readTemp[0:85919], tData[1], c = "k", lineWidth = 1.0) # make actyally line up
-
-x = (0, 100)
+x = (50, 110)
 y = [eq(i, *popt) for i in x]
-axs[1].plot(x, y, c = "k", lineWidth = 1.0)
+axs[1].plot(x, y, c = "k", ls = "--", lineWidth = 2.0)
 fig.tight_layout()
 fig.savefig(fileName + ".png", dpi = 500)
 plt.show()
