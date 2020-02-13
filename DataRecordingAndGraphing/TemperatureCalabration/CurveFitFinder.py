@@ -100,7 +100,7 @@ def eq(x, m, b):
 
 # estimate optimal delay
 sigma = [1000000, 1000000]
-delay = 250
+delay = 150
 while True:
     delay += 1
     lastSigma =  sigma
