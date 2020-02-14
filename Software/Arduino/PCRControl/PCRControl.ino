@@ -193,6 +193,7 @@ void loop() {
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
 
   currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
+  currentPeltierTemp = 0.6075525829531135 * currentPeltierTemp + 15.615801552818361; // seccond estimate
   
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
