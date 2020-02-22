@@ -14,6 +14,14 @@ int main(int argc, char* args[]) {
 	SDL_Surface* temp = TTF_RenderText_Solid(font, "Test", {255, 255, 255, 255});
 	SDL_Texture* fontTexture = SDL_CreateTextureFromSurface(UI::renderer, temp);
 	SDL_FreeSurface(temp);
+	
+	UI::Padding testPadD("img/default_padding.png", 6, 120, 120, 0, 0);
+	UI::Padding testPadG("img/grey_padding.png", 6, 100, 100, 10, 10);
+	UI::Padding testPadK("img/dark_padding.png", 6, 80, 80, 20, 20);
+	UI::Padding testPadS("img/sharp_padding.png", 6, 60, 60, 30, 30);
+	UI::Padding testPadC("img/sharp_selection_padding.png", 6, 40, 40, 40, 40);
+
+
 
 	while (run) {
 		while (SDL_PollEvent(&UI::event) != 0) {
@@ -31,6 +39,12 @@ int main(int argc, char* args[]) {
 		SDL_RenderClear(UI::renderer);
 		
 		SDL_RenderCopy(UI::renderer, fontTexture, NULL, NULL);
+
+		testPadD.render();
+		testPadG.render();
+		testPadK.render();
+		testPadS.render();
+		testPadC.render();
 		
 		SDL_RenderPresent(UI::renderer);
 	
