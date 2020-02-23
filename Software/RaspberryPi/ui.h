@@ -173,8 +173,18 @@ namespace UI {
         y_ = y;
       }
 
-      std::string getPath() {
-        return texturePaths[textureID_];
+      void setWH (int w, int h) {
+        w_ = w;
+        h_ = h;
+      }
+
+      SDL_Rect getRect () {
+        SDL_Rect rect;
+        rect.x = x_;
+        rect.y = y_;
+        rect.w = w_;
+        rect.h = h_;
+        return rect;
       }
 
     private:
@@ -211,6 +221,10 @@ namespace UI {
         SDL_FreeSurface(tempSurface);
       }
 
+      std::string getText () {
+        return text_;
+      }
+
       void render () {
         SDL_Rect destination;
         int imgW;
@@ -227,10 +241,6 @@ namespace UI {
       void setXY (int x, int y) {
         x_ = x;
         y_ = y;
-      }
-
-      ~Text () {
-        SDL_DestroyTexture(texture_);
       }
 
     private:
@@ -300,9 +310,21 @@ namespace UI {
         text_.setText(text);
       }
 
+      std::string getText () {
+        return text_.getText();
+      }
+
       void render () {
         padding_.render();
         text_.render();
+      }
+
+      void select () {
+        padding_.setTexture("img/sharp_selection_padding.png");
+      }
+
+      void deselect () {
+        padding_.setTexture("img/sharp_padding.png");
       }
 
       void setXY (int x, int y) {
@@ -310,6 +332,15 @@ namespace UI {
         y_ = y;
         padding_.setXY(x, y);
         text_.setXY(x + 6, y + 2);
+      }
+
+      SDL_Rect getRect () {
+        SDL_Rect rect;
+        rect.x = x_;
+        rect.y = y_;
+        rect.w = w_;
+        rect.h = h_;
+        return rect;
       }
 
     private:
@@ -320,9 +351,9 @@ namespace UI {
 
   class CycleStep {
     public:
-      CycleStep (int x, int y) :
+      CycleStep (int x = 0, int y = 0) :
       padding_("img/default_padding.png", 6, x, y, 100, 47),
-      temperatureImage_("img/cycle.png", x + 5, y + 5),
+      temperatureImage_("img/thermometer.png", x + 5, y + 5),
       durationImage_("img/clock.png", x + 5, y + 26),
       temperature_(x + 26, y + 5, 69, 16, "0"),
       duration_(x + 26, y + 26, 69, 16, "0") {
@@ -348,6 +379,23 @@ namespace UI {
         y_ = y;
       }
 
+      SDL_Rect getRect () {
+        SDL_Rect rect;
+        rect.x = x_;
+        rect.y = y_;
+        rect.w = 100;
+        rect.h = 47;
+        return rect;
+      }
+
+      TextBox* getTemperature () {
+        return &temperature_;
+      }
+
+      TextBox* getDuration () {
+        return &duration_;
+      }
+
     private:
       int x_, y_;
       Padding padding_;
@@ -355,5 +403,62 @@ namespace UI {
       Image durationImage_;
       TextBox temperature_;
       TextBox duration_;
+  };
+
+  class Cycle {
+    public:
+      std::vector<CycleStep> steps_;
+
+      Cycle (int x, int y) :
+      padding_("img/grey_padding.png", 6, x, y, 100, 26),
+      cycleImage_("img/cycle.png", x + 5, y + 5),
+      numberOfCycles_(x + 26, y + 5, 69, 16, "1") {
+        x_ = x;
+        y_ = y;
+      }
+
+      void render () {
+        padding_.render();
+        cycleImage_.render();
+        numberOfCycles_.render();
+        for(unsigned int i = 0; i < steps_.size(); i++) {
+          steps_[i].render();
+        }
+      }
+
+      void setXY (int x, int y) {
+        x_ = x;
+        y_ = y;
+        padding_.setXY(x, y);
+        cycleImage_.setXY(x + 5, y + 5);
+        numberOfCycles_.setXY(x + 26, y + 5);
+        for(unsigned int i = 0; i < steps_.size(); i++) {
+          steps_[i].setXY(x + 5, y + 26 + i * 52);
+        }
+      }
+
+      void addStep (int index, CycleStep step) {
+        steps_.insert(steps_.begin() + index, step);
+        padding_.setWH(100, 26 + steps_.size() * 52);
+        for(unsigned int i = 0; i < steps_.size(); i++) {
+          steps_[i].setXY(x_ + 5, y_ + 26 + i * 52);
+        }
+      }
+
+      CycleStep removeStep (int index) {
+        CycleStep step = steps_[index];
+        steps_.erase(steps_.begin() + index);
+        return step;
+      }
+
+      SDL_Rect getRect () {
+        return padding_.getRect();
+      }
+
+    private:
+      int x_, y_;
+      Padding padding_;
+      Image cycleImage_;
+      TextBox numberOfCycles_;
   };
 }

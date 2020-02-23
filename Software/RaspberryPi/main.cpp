@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include "ui.h"
 
 bool run = true;
@@ -9,8 +10,10 @@ int main(int argc, char* args[]) {
     return 1;
   }
   { 
-    UI::CycleStep testStep0(10, 10);
-    UI::CycleStep testStep1(120, 10);
+    UI::Cycle testCycle(10, 10);
+  
+    testCycle.addStep(0, UI::CycleStep());
+    testCycle.addStep(1, UI::CycleStep());
 
     while (run) {
       while (SDL_PollEvent(&UI::event) != 0) {
@@ -26,14 +29,14 @@ int main(int argc, char* args[]) {
       }
       SDL_SetRenderDrawColor(UI::renderer, 90, 105, 136, 255);
       SDL_RenderClear(UI::renderer);
-      static float pos = 120;
-      pos += 0.1;
-      testStep1.setXY(pos, 10);
 
-      testStep0.render();
-      testStep1.render();
+      testCycle.render();
     
       SDL_RenderPresent(UI::renderer);
+      if (SDL_GetError()[0] != '\0') {
+        std::cout << "SDL ERROR: " << SDL_GetError() << std::endl;
+        SDL_ClearError();
+      }
     } 
   }
   SDL_DestroyWindow(UI::window);
