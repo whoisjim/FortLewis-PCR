@@ -38,6 +38,7 @@ namespace UI {
       fprintf(stderr, "could not initialize ttf: %s\n", SDL_GetError());
       return 1;
     }
+    SDL_ShowCursor(SDL_DISABLE);
     return 0;
   }
 
@@ -198,7 +199,7 @@ namespace UI {
       Text (const char* path, int size, int x, int y, std::string text = "") {
         bool fontLoaded = false;
         for (unsigned int i = 0; i < fontPaths.size(); i++) {
-          if (fontPaths[i] == path) {
+          if (fontPaths[i] == path + std::to_string(size)) {
             fontLoaded = true;
             fontID_ = i;
             break;
@@ -206,7 +207,7 @@ namespace UI {
         }
         if (!fontLoaded) {
           fontID_ = fontPaths.size();
-          fontPaths.push_back(path);
+          fontPaths.push_back(path + std::to_string(size));
           fonts.push_back(TTF_OpenFont(path, size));
         }
         x_ = x;
@@ -409,7 +410,7 @@ namespace UI {
     public:
       std::vector<CycleStep> steps_;
 
-      Cycle (int x, int y) :
+      Cycle (int x = 0, int y = 0) :
       padding_("img/grey_padding.png", 6, x, y, 100, 26),
       cycleImage_("img/cycle.png", x + 5, y + 5),
       numberOfCycles_(x + 26, y + 5, 69, 16, "1") {
@@ -436,7 +437,7 @@ namespace UI {
           steps_[i].setXY(x + 5, y + 26 + i * 52);
         }
       }
-
+      
       void addStep (int index, CycleStep step) {
         steps_.insert(steps_.begin() + index, step);
         padding_.setWH(100, 26 + steps_.size() * 52);
@@ -448,6 +449,10 @@ namespace UI {
       CycleStep removeStep (int index) {
         CycleStep step = steps_[index];
         steps_.erase(steps_.begin() + index);
+        padding_.setWH(100, 26 + steps_.size() * 52);
+        for(unsigned int i = 0; i < steps_.size(); i++) {
+          steps_[i].setXY(x_ + 5, y_ + 26 + i * 52);
+        }
         return step;
       }
 
@@ -455,10 +460,62 @@ namespace UI {
         return padding_.getRect();
       }
 
+      TextBox* getNumberOfCycles () {
+        return &numberOfCycles_;
+      }
+
     private:
       int x_, y_;
       Padding padding_;
       Image cycleImage_;
       TextBox numberOfCycles_;
+  };
+ 
+  class CycleArray {
+    public:
+      std::vector<Cycle> cycles_;
+
+      CycleArray (int x = 0, int y = 0) {
+        x_ = x;
+        y_ = y;
+      }
+
+      void render () {
+        for(unsigned int i = 0; i < cycles_.size(); i++) {
+          cycles_[i].render();
+        }
+      }
+
+      void setXY (int x, int y) {
+        x_ = x;
+        y_ = y;
+        for(unsigned int i = 0; i < cycles_.size(); i++) {
+          cycles_[i].setXY(x_ + i * 110, y_);
+        }
+      }
+
+      void addCycle (int index, Cycle cycle) {
+        cycles_.insert(cycles_.begin() + index, cycle);
+        for(unsigned int i = 0; i < cycles_.size(); i++) {
+          cycles_[i].setXY(x_ + i * 110, y_);
+        }
+      }
+
+      Cycle removeCycle (int index) {
+        Cycle cycle = cycles_[index];
+        cycles_.erase(cycles_.begin() + index);
+        for(unsigned int i = 0; i < cycles_.size(); i++) {
+          cycles_[i].setXY(x_ + i * 110, y_);
+        }
+        return cycle;
+      }
+
+      SDL_Point getPoint () {
+        SDL_Point temp = {x_, y_};
+        return temp;
+      }
+
+    private:
+      int x_, y_;
   };
 }
