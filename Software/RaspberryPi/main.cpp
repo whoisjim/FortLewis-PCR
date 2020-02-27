@@ -18,15 +18,17 @@ int main(int argc, char* args[]) {
   UI::TextBox errorText(5, 459, 790, 16, "No Errors");
   
   UI::CycleArray cycleArray(10, 10);
-  cycleArray.addCycle(0, UI::Cycle());
-  cycleArray.addCycle(0, UI::Cycle());
-  cycleArray.addCycle(0, UI::Cycle());
-  cycleArray.cycles_[0].addStep(0, UI::CycleStep());
-  cycleArray.cycles_[0].addStep(0, UI::CycleStep());
-  cycleArray.cycles_[1].addStep(0, UI::CycleStep());
-  cycleArray.cycles_[1].addStep(0, UI::CycleStep());
-  cycleArray.cycles_[1].addStep(0, UI::CycleStep());
-  cycleArray.cycles_[2].addStep(0, UI::CycleStep());
+  cycleArray.addCycle(0, new UI::Cycle());
+  cycleArray.addCycle(0, new UI::Cycle());
+  cycleArray.addCycle(0, new UI::Cycle());
+  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
+  cycleArray.cycles_[2]->addStep(0, new UI::CycleStep());
 
   UI::TextBox* selectedTextBox = nullptr;
 
@@ -55,15 +57,15 @@ int main(int argc, char* args[]) {
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
         if (heldStep == nullptr && heldCycle == nullptr) {
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-            for (unsigned int j = 0; j < cycleArray.cycles_[i].steps_.size(); j++) {
-              SDL_Rect stepRect = cycleArray.cycles_[i].steps_[j].getRect();
+            for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+              SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
               if (SDL_PointInRect(&touchLocation, &stepRect)) {
-                heldStep = new UI::CycleStep(cycleArray.cycles_[i].removeStep(j));
+                heldStep = cycleArray.cycles_[i]->removeStep(j);
               }
             }
-            SDL_Rect cycleRect = cycleArray.cycles_[i].getRect();
+            SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
             if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
-              heldCycle = new UI::Cycle(cycleArray.removeCycle(i));
+              heldCycle = cycleArray.removeCycle(i);
             } 
           }
         } else {
@@ -74,36 +76,35 @@ int main(int argc, char* args[]) {
             heldCycle->setXY(touchLocation.x - 50, touchLocation.y - 23);
           }
         }
-
       } else if (UI::event.type == SDL_FINGERUP) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
         if (UI::event.tfinger.timestamp - touchTimeStart <= 500) { // tap
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-            for (unsigned int j = 0; j < cycleArray.cycles_[i].steps_.size(); j++) {
-              SDL_Rect stepRect = cycleArray.cycles_[i].steps_[j].getRect();
+            for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+              SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
               if (SDL_PointInRect(&touchLocation, &stepRect)) {
                 if (touchLocation.y > stepRect.y + stepRect.h / 2) {
                   if (selectedTextBox != nullptr) {
                     selectedTextBox->deselect();
                   } 
-                  selectedTextBox = cycleArray.cycles_[i].steps_[j].getDuration();
+                  selectedTextBox = cycleArray.cycles_[i]->steps_[j]->getDuration();
                   selectedTextBox->select(); 
                 } else {
                   if (selectedTextBox != nullptr) {
                     selectedTextBox->deselect();
                   }
-                  selectedTextBox = cycleArray.cycles_[i].steps_[j].getTemperature();
+                  selectedTextBox = cycleArray.cycles_[i]->steps_[j]->getTemperature();
                   selectedTextBox->select();
                 }
               }
             }
-            SDL_Rect cycleRect = cycleArray.cycles_[i].getRect();
+            SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
             if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
               if (selectedTextBox != nullptr) {
                 selectedTextBox->deselect();
               }
-              selectedTextBox = cycleArray.cycles_[i].getNumberOfCycles();
+              selectedTextBox = cycleArray.cycles_[i]->getNumberOfCycles();
               selectedTextBox->select();
             }
           }
@@ -112,17 +113,15 @@ int main(int argc, char* args[]) {
           SDL_Point cycleArrayPos = cycleArray.getPoint();
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
             if (touchLocation.x - cycleArrayPos.x < (int)i * 110 + 110) {
-              for (unsigned int j = 0; j < cycleArray.cycles_[i].steps_.size(); j++) {
+              for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
                 if (touchLocation.y - cycleArrayPos.y < (int)j * 52 + 54) {
-                  cycleArray.cycles_[i].addStep(j, *heldStep);
-                  delete heldStep;
+                  cycleArray.cycles_[i]->addStep(j, heldStep);
                   heldStep = nullptr;
                   break;
                 }
               }
               if (heldStep != nullptr) {
-                cycleArray.cycles_[i].addStep(cycleArray.cycles_[i].steps_.size(), *heldStep);
-                delete heldStep;
+                cycleArray.cycles_[i]->addStep(cycleArray.cycles_[i]->steps_.size(), heldStep);
                 heldStep = nullptr;
               }
               break;
@@ -133,15 +132,13 @@ int main(int argc, char* args[]) {
           SDL_Point cycleArrayPos = cycleArray.getPoint();
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
             if (touchLocation.x - cycleArrayPos.x < (int)i * 110 + 55) {
-              cycleArray.addCycle(i, *heldCycle);
-              delete heldCycle;
+              cycleArray.addCycle(i, heldCycle);
               heldCycle = nullptr;
               break;
             }
           }
           if (heldCycle != nullptr) {
-            cycleArray.addCycle(cycleArray.cycles_.size(), *heldCycle);
-            delete heldCycle;
+            cycleArray.addCycle(cycleArray.cycles_.size(), heldCycle);
             heldCycle = nullptr;
           }
         }
