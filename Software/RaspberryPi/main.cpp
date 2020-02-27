@@ -16,22 +16,11 @@ int main(int argc, char* args[]) {
   UI::Padding buttonPadding("img/grey_padding.png", 6, 560, -10, 250, 500);
   UI::Padding infoBarPadding("img/default_padding.png", 6, -10, 454, 820, 36); 
   UI::TextBox errorText(5, 459, 790, 16, "No Errors");
-  
-  UI::CycleArray cycleArray(10, 10);
-  cycleArray.addCycle(0, new UI::Cycle());
-  cycleArray.addCycle(0, new UI::Cycle());
-  cycleArray.addCycle(0, new UI::Cycle());
-  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[0]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[1]->addStep(0, new UI::CycleStep());
-  cycleArray.cycles_[2]->addStep(0, new UI::CycleStep());
+  UI::CycleArray cycleArray(5, 5);
 
   UI::TextBox* selectedTextBox = nullptr;
-
+  
+  UI::CycleStep* newStep = new UI::CycleStep(565, 5);
   UI::CycleStep* heldStep = nullptr;
   UI::Cycle* heldCycle = nullptr;
 
@@ -55,31 +44,49 @@ int main(int argc, char* args[]) {
       } else if (UI::event.type == SDL_FINGERMOTION) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-        if (heldStep == nullptr && heldCycle == nullptr) {
-          for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-            for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
-              SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
-              if (SDL_PointInRect(&touchLocation, &stepRect)) {
-                heldStep = cycleArray.cycles_[i]->removeStep(j);
-              }
+        SDL_Point touchDelta;
+        touchDelta.x = UI::event.tfinger.dx * SCREEN_WIDTH;
+        touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
+        SDL_Rect buttonPaddingRect = buttonPadding.getRect();
+        if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
+            SDL_Rect newStepRect = newStep->getRect();
+            if (SDL_PointInRect(&touchLocation, &newStepRect)) {
+              heldStep = newStep;
             }
-            SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
-            if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
-              heldCycle = cycleArray.removeCycle(i);
-            } 
-          }
         } else {
-          if (heldStep != nullptr) {
-            heldStep->setXY(touchLocation.x - 50, touchLocation.y - 23);
+          if (heldStep == nullptr && heldCycle == nullptr) {
+            for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
+              for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+                SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
+                if (SDL_PointInRect(&touchLocation, &stepRect)) {
+                  heldStep = cycleArray.cycles_[i]->removeStep(j);
+                }
+              }
+              SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
+              if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
+                heldCycle = cycleArray.removeCycle(i);
+              } 
+            }
+            float cycleArrayPosX = touchDelta.x + cycleArray.getPoint().x; 
+            if (cycleArrayPosX < -110 * (int)cycleArray.cycles_.size() + 345) {
+              cycleArrayPosX = -110 * (int)cycleArray.cycles_.size() + 345;
+            }
+            if (cycleArrayPosX > 5) {
+              cycleArrayPosX = 5;
+            }
+            cycleArray.setXY(cycleArrayPosX, 5);
           }
-          if (heldCycle != nullptr) {
-            heldCycle->setXY(touchLocation.x - 50, touchLocation.y - 23);
-          }
+        }
+        if (heldCycle != nullptr) {
+          heldCycle->setXY(touchLocation.x - 50, touchLocation.y - 23);
+        }
+        if (heldStep != nullptr) {
+          heldStep->setXY(touchLocation.x - 50, touchLocation.y - 23);
         }
       } else if (UI::event.type == SDL_FINGERUP) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-        if (UI::event.tfinger.timestamp - touchTimeStart <= 500) { // tap
+        if (UI::event.tfinger.timestamp - touchTimeStart <= 500) { // tap 
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
             for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
               SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
@@ -109,6 +116,16 @@ int main(int argc, char* args[]) {
             }
           }
         }
+        SDL_Rect buttonPaddingRect = buttonPadding.getRect();
+        if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
+          if (heldStep != nullptr) {
+            delete heldStep;
+            heldStep = nullptr;
+          } else if (heldCycle != nullptr) {
+            delete heldCycle;
+            heldCycle = nullptr;
+          }
+        }
         if (heldStep != nullptr) {
           SDL_Point cycleArrayPos = cycleArray.getPoint();
           for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
@@ -127,6 +144,11 @@ int main(int argc, char* args[]) {
               break;
             }
           }
+          if (heldStep != nullptr) {
+            cycleArray.addCycle(cycleArray.cycles_.size(), new UI::Cycle());
+            cycleArray.cycles_[cycleArray.cycles_.size() - 1]->addStep(0, heldStep);
+            heldStep = nullptr;
+          }
         }
         if (heldCycle != nullptr) {
           SDL_Point cycleArrayPos = cycleArray.getPoint();
@@ -144,11 +166,16 @@ int main(int argc, char* args[]) {
         }
       }
     }
+
+    if (newStep == heldStep) {
+      newStep = new UI::CycleStep(565, 5);
+    }
      
     cycleArray.render();
 
     buttonPadding.render();
     infoBarPadding.render();
+    newStep->render();
 
     if (heldStep != nullptr) {
       heldStep->render();
