@@ -459,9 +459,50 @@ namespace UI {
     return temp;
   }
 
+  void CycleArray::removeEmptyCycles () {
+    if (cycles_.size() != 0) {
+      for(unsigned int i = cycles_.size(); i > 0; i--) {
+        if (cycles_[i - 1]->steps_.size() == 0) {
+          removeCycle(i - 1);
+        }
+      }
+    }
+  }
+
   CycleArray::~CycleArray () {
     for(unsigned int i = 0; i < cycles_.size(); i++) {
       delete cycles_[i];
     }
   }
+
+
+  Key::Key (int x, int y, int w, int h, char ch, std::string text):
+  padding_("img/default_padding.png", 6, x, y, w, h),
+  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+    x_ = x;
+    y_ = y;
+    ch_ = ch;
+  }
+
+  void Key::render () {
+    padding_.render();   
+    text_.render();
+  }
+
+  void Key::press (TextBox* target) {
+    if (ch_ == '\b') {
+      std::string text = target->getText();
+      if (text.size() > 1) {
+        target->setText(text.substr(0, text.size() - 1));
+      } else {
+        target->setText("0");
+      }
+    } else {
+      target->setText(std::to_string(std::stoi(target->getText() + ch_)));
+    }
+  }
+
+  SDL_Rect Key::getRect () {
+    return padding_.getRect();
+  }  
 }

@@ -13,7 +13,19 @@ int main(int argc, char* args[]) {
   SDL_Point touchLocation;
   int touchTimeStart;
   
-  UI::Padding buttonPadding("img/grey_padding.png", 6, 560, -10, 250, 500);
+  UI::Padding buttonPadding("img/grey_padding.png", 6, 555, -10, 250, 500);
+  UI::Key keys [11] = {UI::Key(560, 100, 75, 75, '7', "7"),
+                       UI::Key(640, 100, 75, 75, '8', "8"),
+                       UI::Key(720, 100, 75, 75, '9', "9"),
+                       UI::Key(560, 180, 75, 75, '4', "4"),
+                       UI::Key(640, 180, 75, 75, '5', "5"),
+                       UI::Key(720, 180, 75, 75, '6', "6"),
+                       UI::Key(560, 260, 75, 75, '1', "1"),
+                       UI::Key(640, 260, 75, 75, '2', "2"),
+                       UI::Key(720, 260, 75, 75, '3', "3"),
+                       UI::Key(560, 340, 75, 75, '0', "0"),
+                       UI::Key(640, 340, 155, 75, '\b', "del")}; 
+
   UI::Padding infoBarPadding("img/default_padding.png", 6, -10, 454, 820, 36); 
   UI::TextBox errorText(5, 459, 790, 16, "No Errors");
   UI::CycleArray cycleArray(5, 5);
@@ -36,11 +48,22 @@ int main(int argc, char* args[]) {
             run = false;
             break;
         }
+
+      // touch start
       } else if (UI::event.type == SDL_FINGERDOWN) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-        touchTimeStart = UI::event.tfinger.timestamp;        
+        touchTimeStart = UI::event.tfinger.timestamp;
+        if (selectedTextBox != nullptr) {
+          for (int i = 0; i < 11; i++) {
+            SDL_Rect keyRect = keys[i].getRect();
+            if (SDL_PointInRect(&touchLocation, &keyRect)) {
+              keys[i].press(selectedTextBox);
+            }
+          }
+        }
 
+      // touch move
       } else if (UI::event.type == SDL_FINGERMOTION) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
@@ -49,10 +72,10 @@ int main(int argc, char* args[]) {
         touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
         SDL_Rect buttonPaddingRect = buttonPadding.getRect();
         if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
-            SDL_Rect newStepRect = newStep->getRect();
-            if (SDL_PointInRect(&touchLocation, &newStepRect)) {
-              heldStep = newStep;
-            }
+          SDL_Rect newStepRect = newStep->getRect();
+          if (SDL_PointInRect(&touchLocation, &newStepRect)) {
+            heldStep = newStep;
+          }
         } else {
           if (heldStep == nullptr && heldCycle == nullptr) {
             for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
@@ -83,6 +106,8 @@ int main(int argc, char* args[]) {
         if (heldStep != nullptr) {
           heldStep->setXY(touchLocation.x - 50, touchLocation.y - 23);
         }
+
+      // touch end
       } else if (UI::event.type == SDL_FINGERUP) {
         touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
         touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
@@ -170,17 +195,18 @@ int main(int argc, char* args[]) {
     if (newStep == heldStep) {
       newStep = new UI::CycleStep(565, 5);
     }
-     
-    cycleArray.render();
+    cycleArray.removeEmptyCycles(); 
 
+    cycleArray.render();
     buttonPadding.render();
+    for (int i = 0; i < 11; i++) {
+      keys[i].render();
+    }
     infoBarPadding.render();
     newStep->render();
-
     if (heldStep != nullptr) {
       heldStep->render();
     }
-
     if (heldCycle != nullptr) {
       heldCycle->render();
     }

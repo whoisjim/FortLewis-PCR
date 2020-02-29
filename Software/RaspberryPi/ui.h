@@ -161,8 +161,23 @@ namespace UI {
       Cycle* removeCycle (int index); // removes and returns a Cycle from this CycleArray
       SDL_Point getPoint (); // returns the location of this CycleArray
       std::vector<Cycle*> cycles_; // the Cycles contained by this CycleArray
+      void removeEmptyCycles (); // removes all empty cycles in this array
       ~CycleArray();
     private:
       int x_, y_;
+  };
+
+  class Key {
+    public:
+      Key (int x, int y, int w, int h, char ch, std::string text);
+      void render ();
+      void press (TextBox* target);
+      SDL_Rect getRect (); // get SDL_Rect based on location and size
+    private:
+      int x_, y_;
+      char ch_;
+      bool pressed_;
+      Padding padding_;
+      Text text_;
   };
 }
