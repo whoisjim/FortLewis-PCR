@@ -362,7 +362,7 @@ namespace UI {
   Cycle::Cycle (int x, int y) :
   padding_("img/grey_padding.png", 6, x, y, 100, 26),
   cycleImage_("img/cycle.png", x + 5, y + 5),
-  numberOfCycles_(x + 26, y + 5, 69, 16, "1") {
+  numberOfCycles_(x + 26, y + 5, 69, 16, "0") {
     x_ = x;
     y_ = y;
   }
@@ -476,7 +476,7 @@ namespace UI {
   }
 
 
-  Key::Key (int x, int y, int w, int h, char ch, std::string text):
+  NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/default_padding.png", 6, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
     x_ = x;
@@ -484,12 +484,12 @@ namespace UI {
     ch_ = ch;
   }
 
-  void Key::render () {
+  void NumberKey::render () {
     padding_.render();   
     text_.render();
   }
 
-  void Key::press (TextBox* target) {
+  void NumberKey::press (TextBox* target) {
     if (ch_ == '\b') {
       std::string text = target->getText();
       if (text.size() > 1) {
@@ -497,12 +497,12 @@ namespace UI {
       } else {
         target->setText("0");
       }
-    } else {
+    } else if (target->getText().size() < 4) {
       target->setText(std::to_string(std::stoi(target->getText() + ch_)));
     }
   }
 
-  SDL_Rect Key::getRect () {
+  SDL_Rect NumberKey::getRect () {
     return padding_.getRect();
   }  
 }

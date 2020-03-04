@@ -167,9 +167,9 @@ namespace UI {
       int x_, y_;
   };
 
-  class Key {
+  class NumberKey {
     public:
-      Key (int x, int y, int w, int h, char ch, std::string text);
+      NumberKey (int x, int y, int w, int h, char ch, std::string text);
       void render ();
       void press (TextBox* target);
       SDL_Rect getRect (); // get SDL_Rect based on location and size

@@ -14,19 +14,19 @@ int main(int argc, char* args[]) {
   int touchTimeStart;
   
   UI::Padding buttonPadding("img/grey_padding.png", 6, 555, -10, 250, 500);
-  UI::Key keys [11] = {UI::Key(560, 100, 75, 75, '7', "7"),
-                       UI::Key(640, 100, 75, 75, '8', "8"),
-                       UI::Key(720, 100, 75, 75, '9', "9"),
-                       UI::Key(560, 180, 75, 75, '4', "4"),
-                       UI::Key(640, 180, 75, 75, '5', "5"),
-                       UI::Key(720, 180, 75, 75, '6', "6"),
-                       UI::Key(560, 260, 75, 75, '1', "1"),
-                       UI::Key(640, 260, 75, 75, '2', "2"),
-                       UI::Key(720, 260, 75, 75, '3', "3"),
-                       UI::Key(560, 340, 75, 75, '0', "0"),
-                       UI::Key(640, 340, 155, 75, '\b', "del")}; 
+  UI::NumberKey keys [11] = {UI::NumberKey(560, 133, 75, 75, '7', "7"),
+                             UI::NumberKey(640, 133, 75, 75, '8', "8"),
+                             UI::NumberKey(720, 133, 75, 75, '9', "9"),
+                             UI::NumberKey(560, 213, 75, 75, '4', "4"),
+                             UI::NumberKey(640, 213, 75, 75, '5', "5"),
+                             UI::NumberKey(720, 213, 75, 75, '6', "6"),
+                             UI::NumberKey(560, 293, 75, 75, '1', "1"),
+                             UI::NumberKey(640, 293, 75, 75, '2', "2"),
+                             UI::NumberKey(720, 293, 75, 75, '3', "3"),
+                             UI::NumberKey(560, 373, 75, 75, '0', "0"),
+                             UI::NumberKey(640, 373, 155, 75, '\b', "del")}; 
 
-  UI::Padding infoBarPadding("img/default_padding.png", 6, -10, 454, 820, 36); 
+  UI::Padding infoBarPadding("img/default_padding.png", 6, -10, 453, 820, 36); 
   UI::TextBox errorText(5, 459, 790, 16, "No Errors");
   UI::CycleArray cycleArray(5, 5);
 
@@ -71,35 +71,39 @@ int main(int argc, char* args[]) {
         touchDelta.x = UI::event.tfinger.dx * SCREEN_WIDTH;
         touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
         SDL_Rect buttonPaddingRect = buttonPadding.getRect();
-        if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
-          SDL_Rect newStepRect = newStep->getRect();
-          if (SDL_PointInRect(&touchLocation, &newStepRect)) {
-            heldStep = newStep;
-          }
-        } else {
-          if (heldStep == nullptr && heldCycle == nullptr) {
-            for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-              for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
-                SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
-                if (SDL_PointInRect(&touchLocation, &stepRect)) {
-                  heldStep = cycleArray.cycles_[i]->removeStep(j);
+        if (abs(touchDelta.x) + abs(touchDelta.y) > 5) {
+          if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
+            SDL_Rect newStepRect = newStep->getRect();
+            if (SDL_PointInRect(&touchLocation, &newStepRect)) {
+              heldStep = newStep;
+            }
+          } else {
+            if (heldStep == nullptr && heldCycle == nullptr) {
+              for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
+                for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+                  SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
+                  if (SDL_PointInRect(&touchLocation, &stepRect)) {
+                    heldStep = cycleArray.cycles_[i]->removeStep(j);
+                  }
                 }
+                SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
+                if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
+                  heldCycle = cycleArray.removeCycle(i);
+                } 
               }
-              SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
-              if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
-                heldCycle = cycleArray.removeCycle(i);
-              } 
+              float cycleArrayPosX = touchDelta.x + cycleArray.getPoint().x; 
+              if (cycleArrayPosX < -110 * (int)cycleArray.cycles_.size() + 345) {
+                cycleArrayPosX = -110 * (int)cycleArray.cycles_.size() + 345;
+              }
+              if (cycleArrayPosX > 5) {
+                cycleArrayPosX = 5;
+              }
+              cycleArray.setXY(cycleArrayPosX, 5);
             }
-            float cycleArrayPosX = touchDelta.x + cycleArray.getPoint().x; 
-            if (cycleArrayPosX < -110 * (int)cycleArray.cycles_.size() + 345) {
-              cycleArrayPosX = -110 * (int)cycleArray.cycles_.size() + 345;
-            }
-            if (cycleArrayPosX > 5) {
-              cycleArrayPosX = 5;
-            }
-            cycleArray.setXY(cycleArrayPosX, 5);
           }
         }
+
+
         if (heldCycle != nullptr) {
           heldCycle->setXY(touchLocation.x - 50, touchLocation.y - 23);
         }
