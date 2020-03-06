@@ -475,6 +475,33 @@ namespace UI {
     }
   }
 
+  Key::Key (int x, int y, int w, int h, char ch, std::string text):
+  padding_("img/default_padding.png", 6, x, y, w, h),
+  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+    x_ = x;
+    y_ = y;
+    ch_ = ch;
+  }
+
+  void Key::render () {
+    padding_.render();   
+    text_.render();
+  }
+
+  void Key::press (TextBox* target) {
+    if (ch_ == '\b') {
+      std::string text = target->getText();
+      if (text.size() > 0) {
+        target->setText(text.substr(0, text.size() - 1));
+      }
+    } else {
+      target->setText(target->getText() + ch_);
+    }
+  }
+
+  SDL_Rect Key::getRect () {
+    return padding_.getRect();
+  }
 
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/default_padding.png", 6, x, y, w, h),
@@ -504,5 +531,26 @@ namespace UI {
 
   SDL_Rect NumberKey::getRect () {
     return padding_.getRect();
-  }  
+  } 
+
+  Button::Button (int x, int y, int w, int h, void (*function)(), std::string text):
+  padding_("img/default_padding.png", 6, x, y, w, h),
+  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+    x_ = x;
+    y_ = y;
+    function_ = function;
+  }
+
+  void Button::render () {
+    padding_.render();   
+    text_.render();
+  }
+
+  void Button::press () {
+    function_();
+  }
+
+  SDL_Rect Button::getRect () {
+    return padding_.getRect();
+  }
 }

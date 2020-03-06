@@ -167,16 +167,57 @@ namespace UI {
       int x_, y_;
   };
 
-  class NumberKey {
+  // for creating keys that type charicters into text boxes
+  class Key {
     public:
-      NumberKey (int x, int y, int w, int h, char ch, std::string text);
-      void render ();
-      void press (TextBox* target);
+      // x : upper left of key's screen x position
+      // y : upper left of key's screen y position
+      // w : width of the key
+      // h : height of the key
+      // text : the text on the button
+      // ch : the cahricter to add to the textbox '\b' for delete
+      // target : the text box to add number to
+      Key (int x, int y, int w, int h, char ch, std::string text);
+      void render (); // renders this number key
+      void press (TextBox* target); // sends sumber to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
     private:
       int x_, y_;
       char ch_;
-      bool pressed_;
+      Padding padding_;
+      Text text_;
+  };
+
+  // for creating keys that type numbers into text box
+  class NumberKey {
+    public:
+      // x : upper left of key's screen x position
+      // y : upper left of key's screen y position
+      // w : width of the key
+      // h : height of the key
+      // text : the text on the button
+      // ch : the number to add to the textbox '\b' for delete
+      // target : the text box to add number to
+      NumberKey (int x, int y, int w, int h, char ch, std::string text);
+      void render (); // renders this number key
+      void press (TextBox* target); // sends sumber to pointed text box
+      SDL_Rect getRect (); // get SDL_Rect based on location and size
+    private:
+      int x_, y_;
+      char ch_;
+      Padding padding_;
+      Text text_;
+  };
+
+  class Button {
+    public:
+      Button (int x, int y, int w, int h, void (*function)(), std::string text);
+      void render (); // renders this button
+      void press (); // calls *function
+      SDL_Rect getRect (); // get SDL_Rect based on location and size
+    private:
+      int x_, y_;
+      void (*function_)();
       Padding padding_;
       Text text_;
   };
