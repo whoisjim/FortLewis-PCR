@@ -135,6 +135,7 @@ namespace UI {
       void render (); // renders the Cycle
       void setXY (int x, int y); // sets the Cycle location
       void addStep (int index, CycleStep* step); // adds a CycleStep to this Cycle
+      CycleStep* getStep (int index);
       CycleStep* removeStep (int index); // removes and returns a CycleStep from this Cycle
       SDL_Rect getRect (); // get SDL_Rect based on location and size
       TextBox* getNumberOfCycles (); // gets the TextBox associated with number of times to repeat this cycle
@@ -160,6 +161,7 @@ namespace UI {
       void addCycle (int index, Cycle* cycle); // adds a Cycle to this CycleArray
       Cycle* removeCycle (int index); // removes and returns a Cycle from this CycleArray
       SDL_Point getPoint (); // returns the location of this CycleArray
+      CycleStep* getStep (int index);
       std::vector<Cycle*> cycles_; // the Cycles contained by this CycleArray
       void removeEmptyCycles (); // removes all empty cycles in this array
       ~CycleArray();
@@ -211,13 +213,12 @@ namespace UI {
 
   class Button {
     public:
-      Button (int x, int y, int w, int h, void (*function)(), std::string text);
+      Button (int x, int y, int w, int h, std::string text);
       void render (); // renders this button
       void press (); // calls *function
       SDL_Rect getRect (); // get SDL_Rect based on location and size
     private:
       int x_, y_;
-      void (*function_)();
       Padding padding_;
       Text text_;
   };

@@ -405,6 +405,10 @@ namespace UI {
     return step;
   }
 
+  CycleStep* Cycle::getStep (int index) {
+    return steps_[index];
+  }
+
   SDL_Rect Cycle::getRect () {
     return padding_.getRect();
   }
@@ -467,6 +471,18 @@ namespace UI {
         }
       }
     }
+  }
+  
+  CycleStep* CycleArray::getStep (int index) {
+    int size  = 0;
+    for (unsigned int i = 0; i < cycles_.size(); i++) {
+      size += cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText()); 
+      if (index <= size) {
+        int j = size - cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText());
+        return cycles_[i]->getStep(j);
+      }
+    }
+    throw "cycle array index out of range";
   }
 
   CycleArray::~CycleArray () {
@@ -533,12 +549,11 @@ namespace UI {
     return padding_.getRect();
   } 
 
-  Button::Button (int x, int y, int w, int h, void (*function)(), std::string text):
+  Button::Button (int x, int y, int w, int h, std::string text):
   padding_("img/default_padding.png", 6, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
     x_ = x;
     y_ = y;
-    function_ = function;
   }
 
   void Button::render () {
@@ -547,7 +562,7 @@ namespace UI {
   }
 
   void Button::press () {
-    function_();
+    
   }
 
   SDL_Rect Button::getRect () {
