@@ -1,4 +1,6 @@
 #include "ui.h"
+#include <iostream>
+#include <fstream>
 
 namespace UI {
   SDL_Window* window = NULL;
@@ -32,6 +34,14 @@ namespace UI {
     }
     SDL_ShowCursor(SDL_DISABLE);
     return 0;
+  }
+
+  bool takeScreenShot(std::string path) {
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, 800, 480, 32, SDL_PIXELFORMAT_RGB888);
+    SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGB888, surface->pixels, surface->pitch);
+    IMG_SavePNG(surface, path.c_str());
+    SDL_FreeSurface(surface);
+    return true;
   }
 
   Padding::Padding (const char* path, int border, int x, int y, int w, int h) {
@@ -194,12 +204,16 @@ namespace UI {
     }
     x_ = x;
     y_ = y;
+    texture_ = NULL;
     setText(text);
   }
 
   void Text::setText (std::string text) {
     text_ = text;
-    SDL_Surface* tempSurface = TTF_RenderText_Blended(fonts[fontID_], text_.c_str(), {24, 20, 37, 255});
+    SDL_Surface* tempSurface = TTF_RenderText_Blended(fonts[fontID_], text_.c_str(), {6, 6, 8, 255});
+    if (texture_ != NULL) {
+      SDL_DestroyTexture(texture_);
+    }
     texture_ = SDL_CreateTextureFromSurface(renderer , tempSurface);
     SDL_FreeSurface(tempSurface);
   }
@@ -250,6 +264,24 @@ namespace UI {
     y_ = y;
   }
 
+  void Image::setTexture (const char* path) {
+    bool textureLoaded = false;
+    for (unsigned int i = 0; i < texturePaths.size(); i++) {
+      if (texturePaths[i] == path) {
+        textureLoaded = true;
+        textureID_ = i;
+        break;
+      }
+    }
+    if (!textureLoaded) {
+      textureID_ = texturePaths.size();
+      texturePaths.push_back(path);
+      SDL_Surface* tempSurface = IMG_Load(path);
+      textures.push_back(SDL_CreateTextureFromSurface(renderer, tempSurface));
+      SDL_FreeSurface(tempSurface);
+    }
+  }
+
   void Image::render () {
     SDL_Rect destination;
     int imgW;
@@ -269,7 +301,7 @@ namespace UI {
   }
  
   TextBox::TextBox (int x, int y, int w, int h, std::string text) :
-  padding_("img/sharp_padding.png", 6, x, y, w, h),
+  padding_("img/padding/S_Grey_3.png", 2, x, y, w, h),
   text_("fonts/consola.ttf", h, x + 6, y + 2, text) {
     x_ = x;
     y_ = y;
@@ -291,11 +323,11 @@ namespace UI {
   }
 
   void TextBox::select () {
-    padding_.setTexture("img/sharp_selection_padding.png", 6);
+    padding_.setTexture("img/padding/S_Blue.png", 2);
   }
 
   void TextBox::deselect () {
-    padding_.setTexture("img/sharp_padding.png", 6);
+    padding_.setTexture("img/padding/S_Grey_3.png", 2);
   }
 
   void TextBox::setXY (int x, int y) {
@@ -315,9 +347,9 @@ namespace UI {
   }
 
   CycleStep::CycleStep (int x, int y) :
-  padding_("img/default_padding.png", 6, x, y, 100, 47),
-  temperatureImage_("img/thermometer.png", x + 5, y + 5),
-  durationImage_("img/clock.png", x + 5, y + 26),
+  padding_("img/padding/R_Grey_1.png", 5, x, y, 100, 47),
+  temperatureImage_("img/Thermometer.png", x + 5, y + 5),
+  durationImage_("img/Clock.png", x + 5, y + 26),
   temperature_(x + 26, y + 5, 69, 16, "0"),
   duration_(x + 26, y + 26, 69, 16, "0") {
     x_ = x;
@@ -360,8 +392,8 @@ namespace UI {
   }
 
   Cycle::Cycle (int x, int y) :
-  padding_("img/grey_padding.png", 6, x, y, 100, 26),
-  cycleImage_("img/cycle.png", x + 5, y + 5),
+  padding_("img/padding/R_Grey_2.png", 5, x, y, 100, 26),
+  cycleImage_("img/Cycle.png", x + 5, y + 5),
   numberOfCycles_(x + 26, y + 5, 69, 16, "0") {
     x_ = x;
     y_ = y;
@@ -418,9 +450,10 @@ namespace UI {
   }
 
   Cycle::~Cycle () {
-    for(unsigned int i = 0; i < steps_.size(); i++) {
-      delete steps_[i];
+    for(auto i : steps_) {
+      delete i;
     }
+    steps_.clear();
   }
 
   CycleArray::CycleArray (int x, int y) {
@@ -467,32 +500,95 @@ namespace UI {
     if (cycles_.size() != 0) {
       for(unsigned int i = cycles_.size(); i > 0; i--) {
         if (cycles_[i - 1]->steps_.size() == 0) {
-          removeCycle(i - 1);
+          Cycle* deleteMe = removeCycle(i - 1);
+          delete deleteMe;
         }
       }
     }
   }
   
   CycleStep* CycleArray::getStep (int index) {
-    int size  = 0;
+    int size = 0;
     for (unsigned int i = 0; i < cycles_.size(); i++) {
-      size += cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText()); 
-      if (index <= size) {
-        int j = size - cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText());
-        return cycles_[i]->getStep(j);
+    size += cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText());
+      if (index < size) {
+        size -= cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText());
+        index -= size;
+        return cycles_[i]->getStep(index % (cycles_[i]->steps_.size() ));
       }
+          
     }
     throw "cycle array index out of range";
   }
 
-  CycleArray::~CycleArray () {
-    for(unsigned int i = 0; i < cycles_.size(); i++) {
-      delete cycles_[i];
+  int CycleArray::size () {
+    int size = 0;
+    for (unsigned int i = 0; i < cycles_.size(); i++) {
+      size += cycles_[i]->steps_.size() * std::stoi(cycles_[i]->getNumberOfCycles()->getText());
     }
+    return size;
+  }
+
+  void CycleArray::load (std::string path) {
+    std::cout << "load file " << path << std::endl;
+    clear();
+
+    std::ifstream inFile;
+    inFile.open(path);
+    int i = -1;
+    int j = 0;
+    while (!inFile.eof()) {
+      if (inFile.peek() == '\n') {
+        inFile.get();
+      } else if (inFile.peek() == '\t') { 
+        inFile.get();
+        float temperature;
+        float duration;
+        inFile >> temperature;
+        inFile >> duration;
+        cycles_[i]->addStep(j, new CycleStep());
+        cycles_[i]->steps_[j]->getTemperature()->setText(std::to_string(temperature));
+        cycles_[i]->steps_[j]->getDuration()->setText(std::to_string(duration));
+        j++;
+      } else {
+        i++;
+        j = 0;
+        float cycles;
+        inFile >> cycles;
+        addCycle(i, new Cycle()); 
+        cycles_[i]->getNumberOfCycles()->setText(std::to_string(cycles)); 
+      }
+    }
+    inFile.close();
+  }
+
+  void CycleArray::save (std::string path) {
+    std::cout << "save file " << path << std::endl;
+    std::ofstream outFile;
+    outFile.open(path);
+    for(unsigned int i = 0; i < cycles_.size(); i++) {
+      outFile << cycles_[i]->getNumberOfCycles()->getText() << "\n";
+      for(unsigned int j = 0; j < cycles_[i]->steps_.size(); j++) {
+        outFile << "\t" << cycles_[i]->steps_[j]->getTemperature()->getText() << " " << cycles_[i]->steps_[j]->getDuration()->getText() << "\n";
+      }
+    }
+
+    outFile.close();
+  }
+
+  void CycleArray::clear () {
+    for(auto i : cycles_) {
+      delete i;
+    }
+    cycles_.clear();
+  }
+
+  CycleArray::~CycleArray () {
+    clear();
   }
 
   Key::Key (int x, int y, int w, int h, char ch, std::string text):
-  padding_("img/default_padding.png", 6, x, y, w, h),
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
     x_ = x;
     y_ = y;
@@ -520,7 +616,7 @@ namespace UI {
   }
 
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
-  padding_("img/default_padding.png", 6, x, y, w, h),
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
     x_ = x;
     y_ = y;
@@ -550,7 +646,7 @@ namespace UI {
   } 
 
   Button::Button (int x, int y, int w, int h, std::string text):
-  padding_("img/default_padding.png", 6, x, y, w, h),
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
     x_ = x;
     y_ = y;
@@ -563,6 +659,10 @@ namespace UI {
 
   void Button::press () {
     
+  }
+
+  void Button::setText(std::string text) {
+    text_.setText(text);
   }
 
   SDL_Rect Button::getRect () {

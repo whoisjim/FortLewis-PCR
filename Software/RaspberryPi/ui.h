@@ -23,6 +23,7 @@ namespace UI {
   extern std::vector<TTF_Font*> fonts; // contains each loaded font
 
   int init(); // initializes sdls
+  bool takeScreenShot(std::string path);
   
   // for drawing a rectangle based on image file.
   // streaches center and edges while leaving corners at the initial aspect ratio.
@@ -74,6 +75,7 @@ namespace UI {
       // x : upper left of image's screen x position
       // y : upper left of image's screen y position 
       Image(const char* path, int x, int y);
+      void setTexture (const char* path); // change texture
       void render (); // renders the image
       void setXY (int x, int y); // sets the image location
     private:
@@ -155,6 +157,7 @@ namespace UI {
       // y : upper left of Cycle's screen y position
       // index : the index to add or remove Cycle at
       // step : Cycle to add to this CycleArray
+      std::vector<Cycle*> cycles_; // the Cycles contained by this CycleArray
       CycleArray (int x = 0, int y = 0);
       void render (); // renders each contained cycle
       void setXY (int x, int y); // sets the location of all contained Cycles
@@ -162,8 +165,11 @@ namespace UI {
       Cycle* removeCycle (int index); // removes and returns a Cycle from this CycleArray
       SDL_Point getPoint (); // returns the location of this CycleArray
       CycleStep* getStep (int index);
-      std::vector<Cycle*> cycles_; // the Cycles contained by this CycleArray
+      int size (); // returns the number of steps in the experiment
       void removeEmptyCycles (); // removes all empty cycles in this array
+      void load (std::string path);
+      void save (std::string path);
+      void clear (); // empties array
       ~CycleArray();
     private:
       int x_, y_;
@@ -211,11 +217,18 @@ namespace UI {
       Text text_;
   };
 
+  // for creating a button that does something when pressed
   class Button {
     public:
+      // x : upper left of the buttons's screen x position
+      // y : upper left of the buttons's screen y position
+      // w : width of the button
+      // h : height of the button
+      // text : the text on the button
       Button (int x, int y, int w, int h, std::string text);
       void render (); // renders this button
-      void press (); // calls *function
+      void press (); // nothing ath the momennt
+      void setText(std::string text);
       SDL_Rect getRect (); // get SDL_Rect based on location and size
     private:
       int x_, y_;
