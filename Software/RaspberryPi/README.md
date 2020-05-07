@@ -1,9 +1,10 @@
 # Raspberry Pi
 ##  Todo
-- [ ] fix load floating point error
+- [ ] fix load floating point problem
 - [ ] add estamated time to completion
 - [ ] create save and load dialogue
 - [ ] create main menu
+- [ ] add error checking
 - [ ] setup program auto launch
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
