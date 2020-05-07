@@ -4,17 +4,16 @@
 - [ ] Develop Raspberry Pi app
 - [ ] Move cycle manager to Arduino script
 - [ ] Generalize PID tuneing
-- [ ] Calabrate block temperature
+- [X] Calabrate block temperature
 ## Hardware
 - [ ] Redo heating block
-- [ ] Redo heatsink
+- [X] Redo heatsink
 - [ ] Create PCB scematic
 - [ ] Design chase
 
 # Current Tasks:
 ## James Ferguson
-- Generalize PID tuneing
-- Calabrate block temperature
+- Develop Raspberry Pi app
 
 ## Jesse Duran
-- Develop Android app
+- Design chase
