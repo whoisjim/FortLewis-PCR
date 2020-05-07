@@ -60,6 +60,7 @@ namespace UI {
       std::string getText (); // get the curent string 
       void render (); // renders text
       void setXY (int x, int y); // move text
+      void formatNumber (); // formats text to a number
       ~Text();
     private:
       std::string text_;
@@ -99,6 +100,7 @@ namespace UI {
       void deselect (); // returns the visual selection indicator to normal
       void setXY (int x, int y); // sets the text box location
       SDL_Rect getRect (); // get SDL_Rect based on location and size
+      void formatNumber (); // formats text to a number
     private:
       Padding padding_;
       Text text_;

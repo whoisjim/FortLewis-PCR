@@ -33,7 +33,7 @@ class ExperimentEditor {
     
     // keypad, start/stop, and new step elements
     UI::Padding buttonPadding;
-    UI::NumberKey keys [11];
+    UI::NumberKey keys [12];
     UI::Padding buttonCover;
     UI::Image recycleBin;
     UI::Button startStopButton; 
@@ -64,7 +64,8 @@ class ExperimentEditor {
          UI::NumberKey(640, 293, 75, 75, '2', "2"),
          UI::NumberKey(720, 293, 75, 75, '3', "3"),
          UI::NumberKey(560, 373, 75, 75, '0', "0"),
-         UI::NumberKey(640, 373, 155, 75, '\b', "del")},
+         UI::NumberKey(640, 373, 75, 75, '.', "."),
+         UI::NumberKey(720, 373, 75, 75, '\b', "del")},
     buttonCover("img/padding/R_Blue.png", 5, 555, -10, 250, 500),
     recycleBin("img/Recycle.png", 616, 176),
     startStopButton(665, 5, 130, 47, "Start"),
@@ -266,7 +267,7 @@ class ExperimentEditor {
             
             // type numbers if a text box is selected and a putton is pressed
             if (selectedTextBox != nullptr) {
-              for (int i = 0; i < 11; i++) {
+              for (int i = 0; i < 12; i++) {
                 SDL_Rect keyRect = keys[i].getRect();
                 if (SDL_PointInRect(&touchLocation, &keyRect)) {
                   keys[i].press(selectedTextBox);
@@ -382,6 +383,7 @@ class ExperimentEditor {
                     // if tapped on the duration text box, select it
                     if (touchLocation.y > stepRect.y + stepRect.h / 2) {
                       if (selectedTextBox != nullptr) { // deselect old text box
+                        selectedTextBox->formatNumber();
                         selectedTextBox->deselect();
                       } 
                       // select new text box
@@ -390,6 +392,7 @@ class ExperimentEditor {
                     // if tapped on the temperature text box, select it
                     } else {
                       if (selectedTextBox != nullptr) { // deselect old text box
+                        selectedTextBox->formatNumber();
                         selectedTextBox->deselect();
                       }
                       // select new text box
@@ -402,6 +405,7 @@ class ExperimentEditor {
                 SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
                 if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
                   if (selectedTextBox != nullptr) { // deselect old text box
+                    selectedTextBox->formatNumber();
                     selectedTextBox->deselect();
                   }
                   // select new text box
@@ -497,7 +501,7 @@ class ExperimentEditor {
       cycleArray.render();
       buttonPadding.render();
       startStopButton.render();
-      for (int i = 0; i < 11; i++) {
+      for (int i = 0; i < 12; i++) {
         keys[i].render();
       }
       

@@ -214,8 +214,12 @@ namespace UI {
     if (texture_ != NULL) {
       SDL_DestroyTexture(texture_);
     }
-    texture_ = SDL_CreateTextureFromSurface(renderer , tempSurface);
-    SDL_FreeSurface(tempSurface);
+    if (tempSurface != NULL) {
+      texture_ = SDL_CreateTextureFromSurface(renderer , tempSurface);
+      SDL_FreeSurface(tempSurface);
+    } else {
+      texture_ = NULL;
+    }
   }
 
   std::string Text::getText () {
@@ -223,21 +227,55 @@ namespace UI {
   }
 
   void Text::render () {
-    SDL_Rect destination;
-    int imgW;
-    int imgH;
-    SDL_QueryTexture(texture_, NULL, NULL, &imgW, &imgH);
-    
-    destination.x = x_;
-    destination.y = y_;
-    destination.w = imgW;
-    destination.h = imgH;
-    SDL_RenderCopy(renderer, texture_, NULL, &destination);
+    if (texture_ != NULL) {  
+      SDL_Rect destination;
+      int imgW;
+      int imgH;
+      SDL_QueryTexture(texture_, NULL, NULL, &imgW, &imgH);
+      
+      destination.x = x_;
+      destination.y = y_;
+      destination.w = imgW;
+      destination.h = imgH;
+      SDL_RenderCopy(renderer, texture_, NULL, &destination);
+    }
   }
   
   void Text::setXY (int x, int y) {
     x_ = x;
     y_ = y;
+  }
+
+  void Text::formatNumber () {
+    if (text_.size() == 0) {
+      setText("0");
+    }
+    try {
+      if (std::stof(text_) == 0) {
+        setText("0");
+      } 
+    } catch (...) {
+      setText("0");
+    }
+    bool hasDecimal = false;
+    for (unsigned int i = 0; i < text_.size(); i++) {
+      if (text_[i] == '.') {
+        hasDecimal = true;
+        break;
+      }
+    }
+    if (hasDecimal) {
+      for (unsigned int i = text_.size() - 1; i >= 0; i--) {
+        if (text_[i] == '.') {
+          text_.pop_back();
+          break;
+        } else if (text_[i] != '0') {
+          break;
+        } 
+        text_.pop_back();
+      }
+      setText(text_);
+    }
   }
 
   Text::~Text () {
@@ -344,6 +382,10 @@ namespace UI {
     rect.w = w_;
     rect.h = h_;
     return rect;
+  }
+
+  void TextBox::formatNumber () {
+    text_.formatNumber();
   }
 
   CycleStep::CycleStep (int x, int y) :
@@ -549,6 +591,8 @@ namespace UI {
         cycles_[i]->addStep(j, new CycleStep());
         cycles_[i]->steps_[j]->getTemperature()->setText(std::to_string(temperature));
         cycles_[i]->steps_[j]->getDuration()->setText(std::to_string(duration));
+        cycles_[i]->steps_[j]->getTemperature()->formatNumber();
+        cycles_[i]->steps_[j]->getDuration()->formatNumber();
         j++;
       } else {
         i++;
@@ -557,6 +601,7 @@ namespace UI {
         inFile >> cycles;
         addCycle(i, new Cycle()); 
         cycles_[i]->getNumberOfCycles()->setText(std::to_string(cycles)); 
+        cycles_[i]->getNumberOfCycles()->formatNumber();
       }
     }
     inFile.close();
@@ -629,15 +674,34 @@ namespace UI {
   }
 
   void NumberKey::press (TextBox* target) {
+    std::string text = target->getText();
     if (ch_ == '\b') {
-      std::string text = target->getText();
-      if (text.size() > 1) {
+      if (text.size() > 0) {
         target->setText(text.substr(0, text.size() - 1));
-      } else {
-        target->setText("0");
       }
-    } else if (target->getText().size() < 4) {
-      target->setText(std::to_string(std::stoi(target->getText() + ch_)));
+    } else if (text.size() < 6) {
+      if (ch_ == '.') {
+        bool hasDecimal = false;
+        for (unsigned int i = 0; i < text.size(); i++) {
+          if (text[i] == '.') {
+            hasDecimal = true;
+            break;
+          }
+        }
+        if (!hasDecimal) {
+          if (text == "0") {
+            target->setText(".");
+          } else {
+            target->setText(text + '.');
+          }
+        }
+      } else {
+        if (text == "0") {
+          target->setText(std::string(1, ch_));
+        } else {
+          target->setText(text + ch_);
+        }
+      }
     }
   }
 
