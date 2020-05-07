@@ -1,6 +1,7 @@
 # Raspberry Pi
 ##  Todo
 - [ ] fix load floating point problem
+- [ ] add floating pont support to num key
 - [ ] add estamated time to completion
 - [ ] create save and load dialogue
 - [ ] create main menu
