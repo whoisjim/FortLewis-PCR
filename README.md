@@ -2,7 +2,7 @@
 ## software
 - [ ] Develop Android app
 - [ ] Develop Raspberry Pi app
-- [ ] Move cycle manager to Arduino script
+- [ ] ~Move cycle manager to Arduino script~
 - [ ] Generalize PID tuneing
 - [X] Calabrate block temperature
 ## Hardware
