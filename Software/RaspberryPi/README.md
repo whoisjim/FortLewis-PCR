@@ -9,6 +9,7 @@
 - [ ] setup program auto launch
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
+- [ ] fix memory ishues
 ## Installing
 install SDL2 and dependencies
 ```
