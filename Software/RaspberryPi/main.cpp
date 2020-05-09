@@ -7,6 +7,7 @@
 #include <string>
 #include <ctime>
 #include <sys/time.h>
+#include <filesystem>
 
 #include "ui.h"
 
@@ -15,6 +16,8 @@
 #include <errno.h>
 #include <termios.h>
 #include <unistd.h>
+
+enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU};
 
 // class for performing logic and rendering of the experiment editor where users can edit and run experiments
 class ExperimentEditor {
@@ -36,7 +39,9 @@ class ExperimentEditor {
     UI::NumberKey keys [12];
     UI::Padding buttonCover;
     UI::Image recycleBin;
-    UI::Button startStopButton; 
+    UI::Button startStopButton;
+    UI::Button loadButton;
+    UI::Button saveButton;
     UI::Text dragToAdd;
     UI::TextBox* selectedTextBox = nullptr;
     UI::CycleStep* newStep = nullptr;
@@ -53,22 +58,24 @@ class ExperimentEditor {
   public:
     ExperimentEditor ():
     cycleArray(5, 5),
-    buttonPadding("img/padding/R_Grey_3.png", 5, 555, -10, 250, 500),
-    keys{UI::NumberKey(560, 133, 75, 75, '7', "7"),
-         UI::NumberKey(640, 133, 75, 75, '8', "8"),
-         UI::NumberKey(720, 133, 75, 75, '9', "9"),
-         UI::NumberKey(560, 213, 75, 75, '4', "4"),
-         UI::NumberKey(640, 213, 75, 75, '5', "5"),
-         UI::NumberKey(720, 213, 75, 75, '6', "6"),
-         UI::NumberKey(560, 293, 75, 75, '1', "1"),
-         UI::NumberKey(640, 293, 75, 75, '2', "2"),
-         UI::NumberKey(720, 293, 75, 75, '3', "3"),
-         UI::NumberKey(560, 373, 75, 75, '0', "0"),
-         UI::NumberKey(640, 373, 75, 75, '.', "."),
-         UI::NumberKey(720, 373, 75, 75, '\b', "del")},
-    buttonCover("img/padding/R_Blue.png", 5, 555, -10, 250, 500),
+    buttonPadding("img/padding/R_Grey_2.png", 5, 554, -10, 251, 500),
+    keys{UI::NumberKey(560,  78, 75, 75, '7', "7"),
+         UI::NumberKey(640,  78, 75, 75, '8', "8"),
+         UI::NumberKey(720,  78, 75, 75, '9', "9"),
+         UI::NumberKey(560, 158, 75, 75, '4', "4"),
+         UI::NumberKey(640, 158, 75, 75, '5', "5"),
+         UI::NumberKey(720, 158, 75, 75, '6', "6"),
+         UI::NumberKey(560, 238, 75, 75, '1', "1"),
+         UI::NumberKey(640, 238, 75, 75, '2', "2"),
+         UI::NumberKey(720, 238, 75, 75, '3', "3"),
+         UI::NumberKey(560, 318, 75, 75, '0', "0"),
+         UI::NumberKey(640, 318, 75, 75, '.', "."),
+         UI::NumberKey(720, 318, 75, 75, '\b', "del")},
+    buttonCover("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
     recycleBin("img/Recycle.png", 616, 176),
-    startStopButton(665, 5, 130, 47, "Start"),
+    startStopButton(665, 5, 130, 68, "Start"),
+    loadButton(560, 398, 115, 50, "Load"),
+    saveButton(680, 398, 115, 50, "Save"),
     dragToAdd("fonts/consola.ttf", 16, 560, 5, "Drag to Add"),
     infoBarPadding("img/padding/R_Grey_1.png", 5, -10, 453, 820, 36),
     statusIndicator("img/Red_Light.png", 5, 459), 
@@ -236,17 +243,17 @@ class ExperimentEditor {
     }
     
     // performs editor input and logic returns 1 for program termination
-    int logic () {
+    states logic () {
       SDL_Point touchLocation; // location of touch
       static int touchTimeStart; // time touch started
 
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
-          return 1; // quit
+          return QUIT; // quit
         } else if (UI::event.type == SDL_KEYDOWN) { // key presses
           switch (UI::event.key.keysym.sym) {
             case SDLK_ESCAPE: // pressed escape, quit
-              return 1;
+              return QUIT;
               break;
             case SDLK_s: // pressed s, take screenshot
               static int screenshotNumber;
@@ -285,6 +292,18 @@ class ExperimentEditor {
               } else {
                 startExperiment();
               }
+            }
+
+            // load button
+            SDL_Rect loadButtonRect = loadButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+              return LOAD_MENU;
+            }
+
+            // save button
+            SDL_Rect saveButtonRect = saveButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
+              return SAVE_MENU;
             }
           }
 
@@ -493,14 +512,20 @@ class ExperimentEditor {
       if (state_ == running_) {
         updateStep();
       }
-      return 0;
+      return EDITOR_MENU;
     }
 
     // renders the UI for the cycle editor
-    void render () { 
+    void render () {
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 74, 84, 98, 255);
+      SDL_RenderClear(UI::renderer);
+      
       cycleArray.render();
       buttonPadding.render();
       startStopButton.render();
+      loadButton.render();
+      saveButton.render();
       for (int i = 0; i < 12; i++) {
         keys[i].render();
       }
@@ -529,6 +554,8 @@ class ExperimentEditor {
       if (heldCycle != nullptr) {
         heldCycle->render();
       }
+      // present render
+      SDL_RenderPresent(UI::renderer);
     }
 
     // save experiment in cycle array
@@ -550,38 +577,298 @@ class ExperimentEditor {
     }
 };
 
-int main(int argc, char* args[]) {
-  
+class MainMenu {
+  private:
+    UI::Text mainText;
+    UI::Button newButton;
+    UI::Button loadButton;
+  public:
+    MainMenu () :
+    mainText("fonts/consola.ttf", 100, 10, 10, "FLC-PCR Main Menu"),
+    newButton(10, 120, 780, 100, "New Experiment"),
+    loadButton(10, 230, 780, 100, "Load Experiment") {}
+
+    states logic () {
+      while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+        if (UI::event.type == SDL_QUIT) { // if user hit window x button
+          return QUIT; // quit
+        } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+          switch (UI::event.key.keysym.sym) {
+            case SDLK_ESCAPE: // pressed escape, quit
+              return QUIT;
+              break;
+            case SDLK_s: // pressed s, take screenshot
+              static int screenshotNumber;
+              UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+              break;
+          }
+        } else if (UI::event.type == SDL_FINGERDOWN) {
+          SDL_Point touchLocation;
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          SDL_Rect newButtonRect = newButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+            return EDITOR_MENU;
+          }
+          SDL_Rect loadButtonRect = loadButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+            return LOAD_MENU;
+          }
+
+        }
+      }
+      return MAIN_MENU;
+    }
+
+    void render () {
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 139, 147, 175, 255);
+      SDL_RenderClear(UI::renderer);
+      
+      mainText.render();
+      newButton.render();
+      loadButton.render();
+
+      // present render
+      SDL_RenderPresent(UI::renderer);
+    }
+};
+
+class LoadMenu {
+  private:
+    ExperimentEditor* editor_;
+    UI::Padding pathSelection_;
+    int selectedPathIndex_ = -1;
+    std::vector<UI::Text> experimentPaths_;
+    std::string savePath_ = "/home/pi/experiments";
+    float textScroll_ = 55;
+    int touchTimeStart = 0;
+    UI::Padding buttonPadding;
+    UI::Button newButton;
+    UI::Button loadButton;
+    UI::Button exitButton;
+    UI::Button deleteButton;
+  public:
+    LoadMenu (ExperimentEditor* editor) :
+    pathSelection_("img/padding/S_Blue.png", 2, -2, 8, 804, 20),
+    buttonPadding("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
+    newButton(5, 5, 100, 35, "New"),
+    loadButton(110, 5, 100, 35, "Load"),
+    exitButton(215, 5, 100, 35, "Exit"),
+    deleteButton(695, 5, 100, 35, "Delete") {
+      updatePaths();
+      editor_ = editor;
+    }
+    
+    void updatePaths () {
+      experimentPaths_.clear();
+      for (const auto & entry : std::filesystem::directory_iterator(savePath_)) {
+        if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
+          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string());
+          experimentPaths_.push_back(entryText);
+        }
+      }
+      movePaths();
+    }
+
+    void movePaths () {
+      for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
+        experimentPaths_[i].setXY(10, i * 21 + textScroll_);
+      }
+      moveSelection();
+    }
+
+    void moveSelection () { 
+      pathSelection_.setXY(-2, selectedPathIndex_ * 21 + textScroll_ - 2);
+    }
+
+    states logic () {
+      while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+        if (UI::event.type == SDL_QUIT) { // if user hit window x button
+          return QUIT; // quit
+        } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+          switch (UI::event.key.keysym.sym) {
+            case SDLK_ESCAPE: // pressed escape, quit
+              return QUIT;
+              break;
+            case SDLK_s: // pressed s, take screenshot
+              static int screenshotNumber;
+              UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+              break;
+          }
+        } else if (UI::event.type == SDL_FINGERDOWN) {
+          SDL_Point touchLocation;
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          touchTimeStart = UI::event.tfinger.timestamp;
+          SDL_Rect newButtonRect = newButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+            editor_->load("/home/pi/Untitled.exp");
+            return EDITOR_MENU;
+          }
+          SDL_Rect loadButtonRect = loadButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+            if (selectedPathIndex_ != -1) { 
+              editor_->load(experimentPaths_[selectedPathIndex_].getText());
+              return EDITOR_MENU;
+            }
+          }
+          SDL_Rect deleteButtonRect = deleteButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
+           if (selectedPathIndex_ != -1) {
+            remove(experimentPaths_[selectedPathIndex_].getText().c_str());
+            selectedPathIndex_ = -1;
+            updatePaths();
+           } 
+          }
+          SDL_Rect exitButtonRect = exitButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &exitButtonRect)) {
+            
+          }
+        } else if (UI::event.type == SDL_FINGERMOTION) {
+          if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
+            textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
+            if (textScroll_ < 55 + 21 - (int)experimentPaths_.size() * 21) {
+              textScroll_ = 55 + 21 - (int)experimentPaths_.size() * 21;
+            }
+            if (textScroll_ > 55) {
+              textScroll_ = 55;
+            }
+            movePaths();
+          }
+        } else if (UI::event.type == SDL_FINGERUP) {
+          SDL_Point touchLocation;
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          
+          if (UI::event.tfinger.timestamp - touchTimeStart <= 200 && touchLocation.y > 50) {
+            // tap path
+            selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
+            if (selectedPathIndex_ >= (int)experimentPaths_.size() || selectedPathIndex_ < 0) {
+              selectedPathIndex_ = -1;
+            }
+            moveSelection();
+          }
+        }
+      }
+      return LOAD_MENU;
+    }
+
+    void render () {
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
+      SDL_RenderClear(UI::renderer);
+
+      if (selectedPathIndex_ != -1) {
+        pathSelection_.render();
+      }
+
+      for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
+        experimentPaths_[i].render();
+      }
+
+      buttonPadding.render();
+
+      newButton.render();
+      loadButton.render();
+      exitButton.render();
+      deleteButton.render();
+
+      // present render
+      SDL_RenderPresent(UI::renderer);
+    }
+};
+
+
+class SaveMenu {
+  private:
+    ExperimentEditor* editor_;
+  public:
+    SaveMenu (ExperimentEditor* editor) {
+      editor_ = editor;
+    } 
+
+    states logic () {
+      while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+        if (UI::event.type == SDL_QUIT) { // if user hit window x button
+          return QUIT; // quit
+        } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+          switch (UI::event.key.keysym.sym) {
+            case SDLK_ESCAPE: // pressed escape, quit
+              return QUIT;
+              break;
+            case SDLK_s: // pressed s, take screenshot
+              static int screenshotNumber;
+              UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+              break;
+          }
+        } else if (UI::event.type == SDL_FINGERDOWN) {
+          SDL_Point touchLocation;
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+
+        }
+      }
+      return SAVE_MENU;
+    }
+
+    void render () {
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
+      SDL_RenderClear(UI::renderer);
+
+      // present render
+      SDL_RenderPresent(UI::renderer);
+    }
+};
+
+int main(int argc, char* args[]) {  
   // initialize UI
   if (UI::init()) {
     return 1;
   }
+ 
+  states state = MAIN_MENU;
 
+  MainMenu mainMenu;
   // create experiment editor
   ExperimentEditor editor;
-  
+  editor.logic(); // add to constructor to fix
+ 
+  LoadMenu loadMenu(&editor);
+  SaveMenu saveMenu(&editor);
+ 
   // load default experiment data
-  editor.load("testsave.exp");
-  
+  editor.load("/home/pi/Untitled.exp");
+
   // program loop
   bool run = true;
   while (run) {
-
-    // run experimet editor logic
-    if (editor.logic()) {
-      break;
+    switch (state) {
+      case QUIT:
+        run = false;
+        break;
+      case MAIN_MENU:
+        mainMenu.render();
+        state = mainMenu.logic();
+        break;
+      case EDITOR_MENU:
+        editor.render();
+        state = editor.logic();
+        break;
+      case LOAD_MENU:
+        loadMenu.render();
+        state = loadMenu.logic();
+        break;
+      case SAVE_MENU:
+        saveMenu.render();
+        state = saveMenu.logic();
+        break;
+      default:
+        std::cout << "ERROR: Unknown state " << state << std::endl;
+        run = false;
+        break;
     }
-    
-    // begin render, clear screen
-    SDL_SetRenderDrawColor(UI::renderer, 74, 84, 98, 255);
-    SDL_RenderClear(UI::renderer);
- 
-    // draw editor
-    editor.render();
- 
-    // present render
-    SDL_RenderPresent(UI::renderer);
-  
     // check for errors dump to console
     if (SDL_GetError()[0] != '\0') {
       std::cout << "SDL ERROR: " << SDL_GetError() << std::endl;

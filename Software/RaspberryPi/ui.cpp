@@ -208,6 +208,14 @@ namespace UI {
     setText(text);
   }
 
+  Text::Text (const Text& copy) {
+    fontID_ = copy.fontID_;
+    x_ = copy.x_;
+    y_ = copy.y_;
+    texture_ = NULL;
+    setText(copy.text_);
+  }
+
   void Text::setText (std::string text) {
     text_ = text;
     SDL_Surface* tempSurface = TTF_RenderText_Blended(fonts[fontID_], text_.c_str(), {6, 6, 8, 255});
@@ -227,7 +235,7 @@ namespace UI {
   }
 
   void Text::render () {
-    if (texture_ != NULL) {  
+    if (texture_ != NULL) {
       SDL_Rect destination;
       int imgW;
       int imgH;
