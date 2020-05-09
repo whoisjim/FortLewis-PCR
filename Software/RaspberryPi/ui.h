@@ -193,7 +193,7 @@ namespace UI {
       // target : the text box to add number to
       Key (int x, int y, int w, int h, char ch, std::string text);
       void render (); // renders this number key
-      void press (TextBox* target); // sends sumber to pointed text box
+      void press (TextBox* target, bool caps = false); // sends ch to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
       void setXY (int x, int y); // sets the key location
     private:

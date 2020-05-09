@@ -6,7 +6,7 @@
 - [X] create save and load dialogue
 - [X] create main menu
 - [ ] polish save and load menu
-- [ ] add shift functionality to save keybord
+- [X] add shift functionality to save keybord
 - [ ] polish save keybord
 - [ ] polish main menu
 - [ ] add error checking

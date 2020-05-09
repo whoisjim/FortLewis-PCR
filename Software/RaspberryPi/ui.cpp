@@ -1,6 +1,7 @@
 #include "ui.h"
 #include <iostream>
 #include <fstream>
+#include <ctype.h>
 
 namespace UI {
   SDL_Window* window = NULL;
@@ -665,14 +666,18 @@ namespace UI {
     text_.render();
   }
 
-  void Key::press (TextBox* target) {
+  void Key::press (TextBox* target, bool caps) {
     if (ch_ == '\b') {
       std::string text = target->getText();
       if (text.size() > 0) {
         target->setText(text.substr(0, text.size() - 1));
       }
     } else {
-      target->setText(target->getText() + ch_);
+      if (caps) {
+        target->setText(target->getText() + (char)toupper(ch_));
+      } else {
+        target->setText(target->getText() + ch_);
+      }
     }
   }
 

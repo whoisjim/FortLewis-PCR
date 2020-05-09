@@ -684,6 +684,8 @@ class LoadSaveMenu {
     UI::Key keys_ [NUM_OF_KEYS_];
     UI::Button doneButton_;
     UI::Button cancelButton_;
+    UI::Button capsButton_;
+    bool caps_ = false;
 
   public:
     LoadSaveMenu (ExperimentEditor* editor) :
@@ -743,7 +745,8 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '_', "_"), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de")},
     doneButton_(15, 430, 100, 35, "Done"),
-    cancelButton_(120, 430, 100, 35, "Cancel") {
+    cancelButton_(120, 430, 100, 35, "Cancel"),
+    capsButton_(225, 430, 100, 35, "Caps") {
       updatePaths();
       editor_ = editor;
       // position keys_
@@ -808,6 +811,7 @@ class LoadSaveMenu {
               selectedPathIndex_ = -1;
               textScroll_ = 55;
               movePaths();
+              newSavePath_.setText("");
               return EDITOR_MENU;
             }
             // load button
@@ -818,6 +822,7 @@ class LoadSaveMenu {
                 selectedPathIndex_ = -1;
                 textScroll_ = 55;
                 movePaths();
+                newSavePath_.setText("");
                 return EDITOR_MENU;
               }
             }
@@ -845,6 +850,7 @@ class LoadSaveMenu {
               selectedPathIndex_ = -1;
               textScroll_ = 55;
               movePaths();
+              newSavePath_.setText("");
               return PREVIOUS;
             }
           } else { // popup is open
@@ -852,7 +858,7 @@ class LoadSaveMenu {
             for (int i = 0; i < NUM_OF_KEYS_; i++) {
               SDL_Rect keyRect = keys_[i].getRect();
               if (SDL_PointInRect(&touchLocation, &keyRect)) {
-                keys_[i].press(&newSavePath_);
+                keys_[i].press(&newSavePath_, caps_);
               } 
             }
             // done button
@@ -867,6 +873,15 @@ class LoadSaveMenu {
             if (SDL_PointInRect(&touchLocation, &cancelRect)) {  
               newSaveFile_ = false;
               updatePaths();
+            }
+            // caps button
+            SDL_Rect capsRect = capsButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &capsRect)) {  
+              if (caps_) {
+                caps_ = false;
+              } else {
+                caps_ = true;
+              }
             }
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
@@ -932,6 +947,7 @@ class LoadSaveMenu {
         }
         doneButton_.render();
         cancelButton_.render();
+        capsButton_.render();
       }
 
       // present render
