@@ -24,9 +24,9 @@ cd ..
 sudo apt-get install libsdl2-image-dev
 sudo apt-get install libsdl2-ttf-dev
 ```
-Compile
+Compile with g++ 8.3.0
 ```
-g++ -o flcpcr main.cpp ui.cpp $(SDL/sdl2-config --cflags --libs) -lSDL2_image -lSDL2_ttf -Wall
+g++ -o flcpcr main.cpp ui.cpp $(SDL/sdl2-config --cflags --libs) -lSDL2_image -lSDL2_ttf -std=c++17 -lstdc++fs -Wall
 ```
 Run
 ```

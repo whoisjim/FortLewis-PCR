@@ -188,7 +188,7 @@ namespace UI {
     return rect;
   }
 
-  Text::Text (const char* path, int size, int x, int y, std::string text) {
+  Text::Text (const char* path, int size, int x, int y, std::string text, bool rightSide) {
     bool fontLoaded = false;
     for (unsigned int i = 0; i < fontPaths.size(); i++) {
       if (fontPaths[i] == path + std::to_string(size)) {
@@ -202,6 +202,7 @@ namespace UI {
       fontPaths.push_back(path + std::to_string(size));
       fonts.push_back(TTF_OpenFont(path, size));
     }
+    rightSide_ = rightSide;
     x_ = x;
     y_ = y;
     texture_ = NULL;
@@ -218,7 +219,10 @@ namespace UI {
 
   void Text::setText (std::string text) {
     text_ = text;
-    SDL_Surface* tempSurface = TTF_RenderText_Blended(fonts[fontID_], text_.c_str(), {6, 6, 8, 255});
+    SDL_Surface* tempSurface = NULL; 
+    if (text.size() > 0) {
+      tempSurface = TTF_RenderText_Blended(fonts[fontID_], text_.c_str(), {6, 6, 8, 255});
+    }
     if (texture_ != NULL) {
       SDL_DestroyTexture(texture_);
     }
@@ -240,12 +244,19 @@ namespace UI {
       int imgW;
       int imgH;
       SDL_QueryTexture(texture_, NULL, NULL, &imgW, &imgH);
-      
-      destination.x = x_;
-      destination.y = y_;
-      destination.w = imgW;
-      destination.h = imgH;
-      SDL_RenderCopy(renderer, texture_, NULL, &destination);
+      if (rightSide_) {
+        destination.x = x_ - imgW;
+        destination.y = y_;
+        destination.w = imgW;
+        destination.h = imgH;
+        SDL_RenderCopy(renderer, texture_, NULL, &destination);
+      } else {
+        destination.x = x_;
+        destination.y = y_;
+        destination.w = imgW;
+        destination.h = imgH;
+        SDL_RenderCopy(renderer, texture_, NULL, &destination); 
+      }
     }
   }
   

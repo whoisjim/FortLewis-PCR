@@ -17,7 +17,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU};
+enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU, PREVIOUS};
 
 // class for performing logic and rendering of the experiment editor where users can edit and run experiments
 class ExperimentEditor {
@@ -54,6 +54,7 @@ class ExperimentEditor {
     UI::Padding progressBarPadding;
     UI::Padding progressBar;
     UI::Text targetTemperature;
+    UI::Text saveFileText;
 
   public:
     ExperimentEditor ():
@@ -81,7 +82,8 @@ class ExperimentEditor {
     statusIndicator("img/Red_Light.png", 5, 459), 
     progressBarPadding("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
     progressBar("img/padding/S_Red.png", 2, 26, 459, 0, 16),
-    targetTemperature("fonts/consola.ttf", 16, 100, 459, "Idle") {
+    targetTemperature("fonts/consola.ttf", 16, 100, 459, "Idle"),
+    saveFileText("fonts/consola.ttf", 16, 795, 459, "", true) {
       openSerial();
     }
 
@@ -541,6 +543,7 @@ class ExperimentEditor {
       infoBarPadding.render();
       statusIndicator.render();
       progressBarPadding.render();
+      saveFileText.render();
 
       int progressBarSize = progressBar.getRect().w;
       if (progressBarSize >= 3) {
@@ -560,11 +563,13 @@ class ExperimentEditor {
 
     // save experiment in cycle array
     void save (std::string path) {
+      saveFileText.setText(path);
       cycleArray.save(path);
     }
 
     // load experiment into cycle array
     void load (std::string path) {
+      saveFileText.setText(path);
       cycleArray.load(path);
     }
 
@@ -579,14 +584,17 @@ class ExperimentEditor {
 
 class MainMenu {
   private:
+    ExperimentEditor* editor_;
     UI::Text mainText;
     UI::Button newButton;
     UI::Button loadButton;
   public:
-    MainMenu () :
+    MainMenu (ExperimentEditor* editor) :
     mainText("fonts/consola.ttf", 100, 10, 10, "FLC-PCR Main Menu"),
     newButton(10, 120, 780, 100, "New Experiment"),
-    loadButton(10, 230, 780, 100, "Load Experiment") {}
+    loadButton(10, 230, 780, 100, "Load Experiment") {
+      editor_ = editor;
+    }
 
     states logic () {
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
@@ -608,6 +616,7 @@ class MainMenu {
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
           SDL_Rect newButtonRect = newButton.getRect();
           if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+            editor_->load("/home/pi/Untitled.exp");
             return EDITOR_MENU;
           }
           SDL_Rect loadButtonRect = loadButton.getRect();
@@ -646,7 +655,7 @@ class LoadMenu {
     UI::Padding buttonPadding;
     UI::Button newButton;
     UI::Button loadButton;
-    UI::Button exitButton;
+    UI::Button cancelButton;
     UI::Button deleteButton;
   public:
     LoadMenu (ExperimentEditor* editor) :
@@ -654,7 +663,7 @@ class LoadMenu {
     buttonPadding("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
     newButton(5, 5, 100, 35, "New"),
     loadButton(110, 5, 100, 35, "Load"),
-    exitButton(215, 5, 100, 35, "Exit"),
+    cancelButton(215, 5, 100, 35, "Cancel"),
     deleteButton(695, 5, 100, 35, "Delete") {
       updatePaths();
       editor_ = editor;
@@ -715,15 +724,15 @@ class LoadMenu {
           }
           SDL_Rect deleteButtonRect = deleteButton.getRect();
           if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
-           if (selectedPathIndex_ != -1) {
-            remove(experimentPaths_[selectedPathIndex_].getText().c_str());
-            selectedPathIndex_ = -1;
-            updatePaths();
-           } 
+            if (selectedPathIndex_ != -1) {
+              remove(experimentPaths_[selectedPathIndex_].getText().c_str());
+              selectedPathIndex_ = -1;
+              updatePaths();
+            } 
           }
-          SDL_Rect exitButtonRect = exitButton.getRect();
-          if (SDL_PointInRect(&touchLocation, &exitButtonRect)) {
-            
+          SDL_Rect cancelButtonRect = cancelButton.getRect();
+          if (SDL_PointInRect(&touchLocation, &cancelButtonRect)) {
+            return PREVIOUS;
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
           if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
@@ -768,10 +777,9 @@ class LoadMenu {
       }
 
       buttonPadding.render();
-
       newButton.render();
       loadButton.render();
-      exitButton.render();
+      cancelButton.render();
       deleteButton.render();
 
       // present render
@@ -829,17 +837,15 @@ int main(int argc, char* args[]) {
   }
  
   states state = MAIN_MENU;
+  static states previousState = MAIN_MENU;
+  static states stateChangeCheck = MAIN_MENU;
 
-  MainMenu mainMenu;
   // create experiment editor
   ExperimentEditor editor;
-  editor.logic(); // add to constructor to fix
- 
+  editor.logic(); // add to constructor to fix 
+  MainMenu mainMenu(&editor);
   LoadMenu loadMenu(&editor);
   SaveMenu saveMenu(&editor);
- 
-  // load default experiment data
-  editor.load("/home/pi/Untitled.exp");
 
   // program loop
   bool run = true;
@@ -864,10 +870,17 @@ int main(int argc, char* args[]) {
         saveMenu.render();
         state = saveMenu.logic();
         break;
+      case PREVIOUS:
+        state = previousState;
+        break;
       default:
         std::cout << "ERROR: Unknown state " << state << std::endl;
         run = false;
         break;
+    }
+    if (state != stateChangeCheck && state != PREVIOUS) {
+      previousState = stateChangeCheck;
+      stateChangeCheck = state;
     }
     // check for errors dump to console
     if (SDL_GetError()[0] != '\0') {

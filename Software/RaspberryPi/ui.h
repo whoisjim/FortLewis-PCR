@@ -55,7 +55,7 @@ namespace UI {
       // x : upper left of text's screen x position
       // y : upper left of text's screen y position
       // text : the string of charicters to be rendered
-      Text (const char* path, int size, int x, int y, std::string text = "");
+      Text (const char* path, int size, int x, int y, std::string text = "", bool rightSide = false);
       Text (const Text&); 
       void setText (std::string text); // sets a new string
       std::string getText (); // get the curent string 
@@ -68,6 +68,7 @@ namespace UI {
       SDL_Texture* texture_;
       int fontID_;
       int x_, y_;
+      bool rightSide_;
   };
 
   // for rendering an unscaled image
