@@ -21,6 +21,8 @@ namespace UI {
 
   extern std::vector<std::string> fontPaths; // contans the path and fontsize of each loaded font
   extern std::vector<TTF_Font*> fonts; // contains each loaded font
+ 
+  enum fileStates {DEFAULT_FILE, SAVED, UNSAVED};
 
   int init(); // initializes sdls
   bool takeScreenShot(std::string path);
@@ -193,6 +195,7 @@ namespace UI {
       void render (); // renders this number key
       void press (TextBox* target); // sends sumber to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
+      void setXY (int x, int y); // sets the key location
     private:
       int x_, y_;
       char ch_;
@@ -214,6 +217,7 @@ namespace UI {
       void render (); // renders this number key
       void press (TextBox* target); // sends sumber to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
+      void setXY (int x, int y); // sets the key location
     private:
       int x_, y_;
       char ch_;
@@ -234,6 +238,7 @@ namespace UI {
       void press (); // nothing ath the momennt
       void setText(std::string text);
       SDL_Rect getRect (); // get SDL_Rect based on location and size
+      void setXY (int x, int y); // sets the button location 
     private:
       int x_, y_;
       Padding padding_;

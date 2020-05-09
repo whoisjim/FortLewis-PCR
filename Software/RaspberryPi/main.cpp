@@ -584,7 +584,7 @@ class ExperimentEditor {
 
 class MainMenu {
   private:
-    ExperimentEditor* editor_;
+    ExperimentEditor* editor_; // the editor to enteract with
     UI::Text mainText;
     UI::Button newButton;
     UI::Button loadButton;
@@ -615,10 +615,14 @@ class MainMenu {
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
           SDL_Rect newButtonRect = newButton.getRect();
+
+          // new experiment button pressed
           if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
             editor_->load("/home/pi/Untitled.exp");
             return EDITOR_MENU;
           }
+
+          // load experiment pressed
           SDL_Rect loadButtonRect = loadButton.getRect();
           if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
             return LOAD_MENU;
@@ -643,37 +647,102 @@ class MainMenu {
     }
 };
 
-class LoadMenu {
+class LoadSaveMenu {
   private:
-    ExperimentEditor* editor_;
+    ExperimentEditor* editor_; // the editor to enteract with
     UI::Padding pathSelection_;
     int selectedPathIndex_ = -1;
     std::vector<UI::Text> experimentPaths_;
-    std::string savePath_ = "/home/pi/experiments";
+    std::string savePath_ = "/home/pi/experiments/";
     float textScroll_ = 55;
     int touchTimeStart = 0;
     UI::Padding buttonPadding;
     UI::Button newButton;
     UI::Button loadButton;
-    UI::Button cancelButton;
+    UI::Button saveButton;
+    UI::Button backButton;
     UI::Button deleteButton;
+    bool newSaveFile = false;
+    UI::Padding newSaveCover;
+    UI::Text fileText;
+    UI::TextBox newSavePath;
+    const int KEYSIZE = 70;
+    const static int NUM_OF_KEYS = 46;
+    UI::Key keys [NUM_OF_KEYS];
+    UI::Button doneButton;
+    UI::Button cancelButton;
   public:
-    LoadMenu (ExperimentEditor* editor) :
+    LoadSaveMenu (ExperimentEditor* editor) :
     pathSelection_("img/padding/S_Blue.png", 2, -2, 8, 804, 20),
     buttonPadding("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
     newButton(5, 5, 100, 35, "New"),
     loadButton(110, 5, 100, 35, "Load"),
-    cancelButton(215, 5, 100, 35, "Cancel"),
-    deleteButton(695, 5, 100, 35, "Delete") {
+    saveButton(215, 5, 100, 35, "Save"),
+    backButton(320, 5, 100, 35, "Cancel"),
+    deleteButton(695, 5, 100, 35, "Delete"),
+    newSaveCover("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
+    fileText("fonts/consola.ttf", 16, 15, 15, "Filename :"),
+    newSavePath(110, 15, 670, 21),
+    keys{UI::Key(0, 0, KEYSIZE, KEYSIZE, '1', "1"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '2', "2"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '3', "3"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '4', "4"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '5', "5"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '6', "6"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '7', "7"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '8', "8"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '9', "9"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '0', "0"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'q', "q"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'w', "w"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'e', "e"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'r', "r"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 't', "t"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'y', "y"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'u', "u"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'i', "i"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'o', "o"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'p', "p"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'a', "a"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 's', "s"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'd', "d"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'f', "f"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'g', "g"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'h', "h"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'j', "j"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'k', "k"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'l', "l"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, ';', ";"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'z', "z"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'x', "x"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'c', "c"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'v', "v"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'b', "b"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'n', "n"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'm', "m"),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, ',', ","),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '.', "."),
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '/', "/"), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, ' ', ""), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '-', "-"), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '+', "+"), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '=', "="), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '_', "_"), 
+         UI::Key(0, 0, KEYSIZE, KEYSIZE, '\b', "de")},
+    doneButton(15, 430, 100, 35, "Done"),
+    cancelButton(120, 430, 100, 35, "Cancel") {
       updatePaths();
       editor_ = editor;
+      for (int i = 0; i < NUM_OF_KEYS; i++) {
+        keys[i].setXY(15 + (KEYSIZE + 5) * (i % 10), 41 + (KEYSIZE + 5) * (i / 10));
+      }
     }
     
     void updatePaths () {
       experimentPaths_.clear();
       for (const auto & entry : std::filesystem::directory_iterator(savePath_)) {
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
-          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string());
+          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string(), false);
           experimentPaths_.push_back(entryText);
         }
       }
@@ -682,7 +751,7 @@ class LoadMenu {
 
     void movePaths () {
       for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
-        experimentPaths_[i].setXY(10, i * 21 + textScroll_);
+        experimentPaths_[i].setXY(15, i * 21 + textScroll_);
       }
       moveSelection();
     }
@@ -691,7 +760,7 @@ class LoadMenu {
       pathSelection_.setXY(-2, selectedPathIndex_ * 21 + textScroll_ - 2);
     }
 
-    states logic () {
+    states logic (states state) {
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
           return QUIT; // quit
@@ -709,58 +778,90 @@ class LoadMenu {
           SDL_Point touchLocation;
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          touchTimeStart = UI::event.tfinger.timestamp;
-          SDL_Rect newButtonRect = newButton.getRect();
-          if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
-            editor_->load("/home/pi/Untitled.exp");
-            return EDITOR_MENU;
-          }
-          SDL_Rect loadButtonRect = loadButton.getRect();
-          if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
-            if (selectedPathIndex_ != -1) { 
-              editor_->load(experimentPaths_[selectedPathIndex_].getText());
+          if (!newSaveFile) {  
+            touchTimeStart = UI::event.tfinger.timestamp;
+            SDL_Rect newButtonRect = newButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+              editor_->load("/home/pi/Untitled.exp");
               return EDITOR_MENU;
             }
-          }
-          SDL_Rect deleteButtonRect = deleteButton.getRect();
-          if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
-            if (selectedPathIndex_ != -1) {
-              remove(experimentPaths_[selectedPathIndex_].getText().c_str());
-              selectedPathIndex_ = -1;
+            SDL_Rect loadButtonRect = loadButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+              if (selectedPathIndex_ != -1) { 
+                editor_->load(experimentPaths_[selectedPathIndex_].getText());
+                return EDITOR_MENU;
+              }
+            }
+            SDL_Rect saveButtonRect = saveButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
+              if (selectedPathIndex_ != -1) { 
+                editor_->save(experimentPaths_[selectedPathIndex_].getText());
+              } else {
+                newSaveFile = true;
+              }
+            }
+            SDL_Rect deleteButtonRect = deleteButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
+              if (selectedPathIndex_ != -1) {
+                remove(experimentPaths_[selectedPathIndex_].getText().c_str());
+                selectedPathIndex_ = -1;
+                updatePaths();
+              } 
+            }
+            SDL_Rect backButtonRect = backButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &backButtonRect)) {
+              return PREVIOUS;
+            }
+          } else {
+            for (int i = 0; i < NUM_OF_KEYS; i++) {
+              SDL_Rect keyRect = keys[i].getRect();
+              if (SDL_PointInRect(&touchLocation, &keyRect)) {
+                keys[i].press(&newSavePath);
+              } 
+            }
+            SDL_Rect doneRect = doneButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &doneRect)) {  
+              editor_->save(savePath_ + newSavePath.getText() + ".exp"); 
+              newSaveFile = false;
+              updatePaths(); 
+            }
+            SDL_Rect cancelRect = cancelButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &cancelRect)) {  
+              newSaveFile = false;
               updatePaths();
-            } 
-          }
-          SDL_Rect cancelButtonRect = cancelButton.getRect();
-          if (SDL_PointInRect(&touchLocation, &cancelButtonRect)) {
-            return PREVIOUS;
+            }
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
-          if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
-            textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
-            if (textScroll_ < 55 + 21 - (int)experimentPaths_.size() * 21) {
-              textScroll_ = 55 + 21 - (int)experimentPaths_.size() * 21;
+          if (!newSaveFile) {  
+            if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
+              textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
+              if (textScroll_ < 55 + 21 - (int)experimentPaths_.size() * 21) {
+                textScroll_ = 55 + 21 - (int)experimentPaths_.size() * 21;
+              }
+              if (textScroll_ > 55) {
+                textScroll_ = 55;
+              }
+              movePaths();
             }
-            if (textScroll_ > 55) {
-              textScroll_ = 55;
-            }
-            movePaths();
           }
         } else if (UI::event.type == SDL_FINGERUP) {
-          SDL_Point touchLocation;
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          
-          if (UI::event.tfinger.timestamp - touchTimeStart <= 200 && touchLocation.y > 50) {
-            // tap path
-            selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
-            if (selectedPathIndex_ >= (int)experimentPaths_.size() || selectedPathIndex_ < 0) {
-              selectedPathIndex_ = -1;
+         if (!newSaveFile) { 
+            SDL_Point touchLocation;
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            
+            if (UI::event.tfinger.timestamp - touchTimeStart <= 200 && touchLocation.y > 50) {
+              // tap path
+              selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
+              if (selectedPathIndex_ >= (int)experimentPaths_.size() || selectedPathIndex_ < 0) {
+                selectedPathIndex_ = -1;
+              }
+              moveSelection();
             }
-            moveSelection();
-          }
+          } 
         }
       }
-      return LOAD_MENU;
+      return state;
     }
 
     void render () {
@@ -779,51 +880,20 @@ class LoadMenu {
       buttonPadding.render();
       newButton.render();
       loadButton.render();
-      cancelButton.render();
+      saveButton.render();
+      backButton.render();
       deleteButton.render();
 
-      // present render
-      SDL_RenderPresent(UI::renderer);
-    }
-};
-
-
-class SaveMenu {
-  private:
-    ExperimentEditor* editor_;
-  public:
-    SaveMenu (ExperimentEditor* editor) {
-      editor_ = editor;
-    } 
-
-    states logic () {
-      while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
-        if (UI::event.type == SDL_QUIT) { // if user hit window x button
-          return QUIT; // quit
-        } else if (UI::event.type == SDL_KEYDOWN) { // key presses
-          switch (UI::event.key.keysym.sym) {
-            case SDLK_ESCAPE: // pressed escape, quit
-              return QUIT;
-              break;
-            case SDLK_s: // pressed s, take screenshot
-              static int screenshotNumber;
-              UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
-              break;
-          }
-        } else if (UI::event.type == SDL_FINGERDOWN) {
-          SDL_Point touchLocation;
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-
+      if (newSaveFile) {
+        newSaveCover.render();
+        fileText.render();
+        newSavePath.render();
+        for (int i = 0; i < NUM_OF_KEYS; i++) {
+          keys[i].render();
         }
+        doneButton.render();
+        cancelButton.render();
       }
-      return SAVE_MENU;
-    }
-
-    void render () {
-      // begin render, clear screen
-      SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
-      SDL_RenderClear(UI::renderer);
 
       // present render
       SDL_RenderPresent(UI::renderer);
@@ -836,20 +906,22 @@ int main(int argc, char* args[]) {
     return 1;
   }
  
-  states state = MAIN_MENU;
-  static states previousState = MAIN_MENU;
-  static states stateChangeCheck = MAIN_MENU;
+  states state = MAIN_MENU; // the curent state
+  static states previousState = MAIN_MENU; // the previous state
+  static states stateChangeCheck = MAIN_MENU; // for identifying a state change
 
   // create experiment editor
   ExperimentEditor editor;
   editor.logic(); // add to constructor to fix 
+  
+  // create menus
   MainMenu mainMenu(&editor);
-  LoadMenu loadMenu(&editor);
-  SaveMenu saveMenu(&editor);
+  LoadSaveMenu loadSaveMenu(&editor);
 
   // program loop
   bool run = true;
   while (run) {
+    // render and perform logic for the current state
     switch (state) {
       case QUIT:
         run = false;
@@ -863,12 +935,12 @@ int main(int argc, char* args[]) {
         state = editor.logic();
         break;
       case LOAD_MENU:
-        loadMenu.render();
-        state = loadMenu.logic();
+        loadSaveMenu.render();
+        state = loadSaveMenu.logic(LOAD_MENU);
         break;
       case SAVE_MENU:
-        saveMenu.render();
-        state = saveMenu.logic();
+        loadSaveMenu.render();
+        state = loadSaveMenu.logic(SAVE_MENU);
         break;
       case PREVIOUS:
         state = previousState;
@@ -878,6 +950,7 @@ int main(int argc, char* args[]) {
         run = false;
         break;
     }
+    // keep trach of the last state
     if (state != stateChangeCheck && state != PREVIOUS) {
       previousState = stateChangeCheck;
       stateChangeCheck = state;

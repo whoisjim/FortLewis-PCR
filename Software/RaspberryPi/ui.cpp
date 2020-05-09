@@ -12,7 +12,7 @@ namespace UI {
 
   std::vector<std::string> fontPaths;
   std::vector<TTF_Font*> fonts;
-  
+ 
   int init() {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
       fprintf(stderr, "could not initialize sdl2: %s\n", SDL_GetError());
@@ -214,6 +214,7 @@ namespace UI {
     x_ = copy.x_;
     y_ = copy.y_;
     texture_ = NULL;
+    rightSide_ = copy.rightSide_;
     setText(copy.text_);
   }
 
@@ -679,6 +680,13 @@ namespace UI {
     return padding_.getRect();
   }
 
+  void Key::setXY (int x, int y) {
+    x_ = x;
+    y_ = y;
+    text_.setXY(x, y);
+    padding_.setXY(x, y);
+  }
+
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
   text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
@@ -726,7 +734,14 @@ namespace UI {
 
   SDL_Rect NumberKey::getRect () {
     return padding_.getRect();
-  } 
+  }
+
+  void NumberKey::setXY (int x, int y) {
+    x_ = x;
+    y_ = y;
+    text_.setXY(x, y);
+    padding_.setXY(x, y);
+  }
 
   Button::Button (int x, int y, int w, int h, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
@@ -750,5 +765,12 @@ namespace UI {
 
   SDL_Rect Button::getRect () {
     return padding_.getRect();
+  }
+
+  void Button::setXY (int x, int y) {
+    x_ = x;
+    y_ = y;
+    text_.setXY(x, y);
+    padding_.setXY(x, y);
   }
 }
