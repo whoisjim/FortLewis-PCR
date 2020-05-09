@@ -25,42 +25,43 @@ class ExperimentEditor {
     int serialPort_; // the serial port for communication to atmega328p
     bool atTemperature_; // is the system at the target temperature
     bool timerStarted_; // has the timer for the current step started
-    timeval stepStartTime; // the time that the current step got to temperature
+    timeval stepStartTime_; // the time that the current step got to temperature
+    int touchTimeStart_ = 0; // time touch started
 
-    enum states_ {idle_, running_, done_, abort_}; // system states
-    states_ state_ = idle_; // current system state<F3>
+    enum states_ {IDLE_, RUNNING_, DONE_, ABORT_}; // system states
+    states_ state_ = IDLE_; // current system state<F3>
     int experimentIndex_ = 0; // current temperature step position
  
     // UI element declarations
-    UI::CycleArray cycleArray;
+    UI::CycleArray cycleArray_;
     
     // keypad, start/stop, and new step elements
-    UI::Padding buttonPadding;
-    UI::NumberKey keys [12];
-    UI::Padding buttonCover;
-    UI::Image recycleBin;
-    UI::Button startStopButton;
-    UI::Button loadButton;
-    UI::Button saveButton;
-    UI::Text dragToAdd;
-    UI::TextBox* selectedTextBox = nullptr;
-    UI::CycleStep* newStep = nullptr;
-    UI::CycleStep* heldStep = nullptr;
-    UI::Cycle* heldCycle = nullptr;
+    UI::Padding buttonPadding_;
+    UI::NumberKey keys_ [12];
+    UI::Padding buttonCover_;
+    UI::Image recycleBin_;
+    UI::Button startStopButton_;
+    UI::Button loadButton_;
+    UI::Button saveButton_;
+    UI::Text dragToAdd_;
+    UI::TextBox* selectedTextBox_ = nullptr;
+    UI::CycleStep* newStep_ = nullptr;
+    UI::CycleStep* heldStep_ = nullptr;
+    UI::Cycle* heldCycle_ = nullptr;
     
     // info bar and contained elements
-    UI::Padding infoBarPadding;
-    UI::Image statusIndicator;
-    UI::Padding progressBarPadding;
-    UI::Padding progressBar;
-    UI::Text targetTemperature;
-    UI::Text saveFileText;
+    UI::Padding infoBarPadding_;
+    UI::Image statusIndicator_;
+    UI::Padding progressBar_Padding_;
+    UI::Padding progressBar_;
+    UI::Text targetTemperature_;
+    UI::Text saveFileText_;
 
   public:
     ExperimentEditor ():
-    cycleArray(5, 5),
-    buttonPadding("img/padding/R_Grey_2.png", 5, 554, -10, 251, 500),
-    keys{UI::NumberKey(560,  78, 75, 75, '7', "7"),
+    cycleArray_(5, 5),
+    buttonPadding_("img/padding/R_Grey_2.png", 5, 554, -10, 251, 500),
+    keys_{UI::NumberKey(560,  78, 75, 75, '7', "7"),
          UI::NumberKey(640,  78, 75, 75, '8', "8"),
          UI::NumberKey(720,  78, 75, 75, '9', "9"),
          UI::NumberKey(560, 158, 75, 75, '4', "4"),
@@ -72,37 +73,37 @@ class ExperimentEditor {
          UI::NumberKey(560, 318, 75, 75, '0', "0"),
          UI::NumberKey(640, 318, 75, 75, '.', "."),
          UI::NumberKey(720, 318, 75, 75, '\b', "del")},
-    buttonCover("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
-    recycleBin("img/Recycle.png", 616, 176),
-    startStopButton(665, 5, 130, 68, "Start"),
-    loadButton(560, 398, 115, 50, "Load"),
-    saveButton(680, 398, 115, 50, "Save"),
-    dragToAdd("fonts/consola.ttf", 16, 560, 5, "Drag to Add"),
-    infoBarPadding("img/padding/R_Grey_1.png", 5, -10, 453, 820, 36),
-    statusIndicator("img/Red_Light.png", 5, 459), 
-    progressBarPadding("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
-    progressBar("img/padding/S_Red.png", 2, 26, 459, 0, 16),
-    targetTemperature("fonts/consola.ttf", 16, 100, 459, "Idle"),
-    saveFileText("fonts/consola.ttf", 16, 795, 459, "", true) {
+    buttonCover_("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
+    recycleBin_("img/Recycle.png", 616, 176),
+    startStopButton_(665, 5, 130, 68, "Start"),
+    loadButton_(560, 398, 115, 50, "Load"),
+    saveButton_(680, 398, 115, 50, "Save"),
+    dragToAdd_("fonts/consola.ttf", 16, 560, 5, "Drag to Add"),
+    infoBarPadding_("img/padding/R_Grey_1.png", 5, -10, 453, 820, 36),
+    statusIndicator_("img/Red_Light.png", 5, 459), 
+    progressBar_Padding_("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
+    progressBar_("img/padding/S_Red.png", 2, 26, 459, 0, 16),
+    targetTemperature_("fonts/consola.ttf", 16, 100, 459, "Idle"),
+    saveFileText_("fonts/consola.ttf", 16, 795, 459, "", true) {
       openSerial();
     }
 
     // turn on and start sending temperature data to plc
     void startExperiment () {
-      if (cycleArray.size() == 0) {
+      if (cycleArray_.size() == 0) {
         return;
       }
-      if (selectedTextBox != nullptr) {
-        selectedTextBox->deselect();
-        selectedTextBox = nullptr;
+      if (selectedTextBox_ != nullptr) {
+        selectedTextBox_->deselect();
+        selectedTextBox_ = nullptr;
       }
-      state_ = running_;
+      state_ = RUNNING_;
       experimentIndex_ = -1;
       writeSerial("on\n");
-      statusIndicator.setTexture("img/Green_Light.png");
-      progressBar.setTexture("img/padding/S_Green.png", 2);
-      startStopButton.setText("Abort");
-      gettimeofday(&stepStartTime, NULL);
+      statusIndicator_.setTexture("img/Green_Light.png");
+      progressBar_.setTexture("img/padding/S_Green.png", 2);
+      startStopButton_.setText("Abort");
+      gettimeofday(&stepStartTime_, NULL);
       nextStep(); 
     }
 
@@ -110,7 +111,7 @@ class ExperimentEditor {
     void updateStep () {
       timeval currentTime;
       gettimeofday(&currentTime, NULL);
-      double currentDuration = (currentTime.tv_sec - stepStartTime.tv_sec) + (currentTime.tv_usec - stepStartTime.tv_usec) * 1e-6;
+      double currentDuration = (currentTime.tv_sec - stepStartTime_.tv_sec) + (currentTime.tv_usec - stepStartTime_.tv_usec) * 1e-6;
       
       static int cnt;
       cnt = (cnt + 1) % 120;
@@ -123,7 +124,7 @@ class ExperimentEditor {
         for (unsigned int i = 0; i < serialString.length(); i++) {
           if (serialString[i] == ' ') {
             sub = serialString.substr(0, i);
-            UI::CycleStep* step = cycleArray.getStep(experimentIndex_);
+            UI::CycleStep* step = cycleArray_.getStep(experimentIndex_);
             if (std::stof(sub) - std::stof(step->getTemperature()->getText()) < 5) {
               atTemperature_ = true;
             }
@@ -133,13 +134,13 @@ class ExperimentEditor {
       }
 
       if (atTemperature_ && !timerStarted_) {
-        gettimeofday(&stepStartTime, NULL);
+        gettimeofday(&stepStartTime_, NULL);
         timerStarted_ = true;
       }
       
-      if (timerStarted_ && currentDuration > std::stoi(cycleArray.getStep(experimentIndex_)->getDuration()->getText())) {
+      if (timerStarted_ && currentDuration > std::stoi(cycleArray_.getStep(experimentIndex_)->getDuration()->getText())) {
         nextStep();
-        gettimeofday(&stepStartTime, NULL);
+        gettimeofday(&stepStartTime_, NULL);
       }
     }
 
@@ -147,11 +148,11 @@ class ExperimentEditor {
     void nextStep () {
       experimentIndex_ += 1;
       
-      progressBar.setWH(69 * (float)experimentIndex_ / (float)cycleArray.size(), 16);
+      progressBar_.setWH(69 * (float)experimentIndex_ / (float)cycleArray_.size(), 16);
 
       try {
-        UI::CycleStep* step = cycleArray.getStep(experimentIndex_);
-        targetTemperature.setText(step->getTemperature()->getText() + "\xB0" + "C");
+        UI::CycleStep* step = cycleArray_.getStep(experimentIndex_);
+        targetTemperature_.setText(step->getTemperature()->getText() + "\xB0" + "C");
         writeSerial("pt" + step->getTemperature()->getText() + "\n");
         atTemperature_ = false;
         timerStarted_ = false;
@@ -163,32 +164,32 @@ class ExperimentEditor {
     // reached end of experiment shut plc down
     void finishExperiment () {
       writeSerial("off\n");
-      targetTemperature.setText("Finished");
-      statusIndicator.setTexture("img/Blue_Light.png");
-      progressBar.setTexture("img/padding/S_Blue.png", 2);
-      state_ = done_;
-      startStopButton.setText("Reset");
+      targetTemperature_.setText("Finished");
+      statusIndicator_.setTexture("img/Blue_Light.png");
+      progressBar_.setTexture("img/padding/S_Blue.png", 2);
+      state_ = DONE_;
+      startStopButton_.setText("Reset");
     } 
 
     // pematurely end experiment turn plc off
     void abortExperiment () {
       writeSerial("off\n");
-      targetTemperature.setText("Aborted");
-      statusIndicator.setTexture("img/Red_Light.png");
-      progressBar.setTexture("img/padding/S_Red.png", 2);
-      state_ = abort_;
-      startStopButton.setText("Reset");
+      targetTemperature_.setText("Aborted");
+      statusIndicator_.setTexture("img/Red_Light.png");
+      progressBar_.setTexture("img/padding/S_Red.png", 2);
+      state_ = ABORT_;
+      startStopButton_.setText("Reset");
     }
 
     // re enables experiment editiog
     void resetExperiment() {
       experimentIndex_ = 0;
-      progressBar.setWH(0, 16);
-      targetTemperature.setText("Idle");
-      statusIndicator.setTexture("img/Red_Light.png");
-      progressBar.setTexture("img/padding/S_Red.png", 2);
-      state_ = idle_;
-      startStopButton.setText("Start");
+      progressBar_.setWH(0, 16);
+      targetTemperature_.setText("Idle");
+      statusIndicator_.setTexture("img/Red_Light.png");
+      progressBar_.setTexture("img/padding/S_Red.png", 2);
+      state_ = IDLE_;
+      startStopButton_.setText("Start");
     }
     
     // open /dev/ttyACM0 as linux serial with baud rate 115200
@@ -244,11 +245,9 @@ class ExperimentEditor {
       write(serialPort_, message.c_str(), sizeof(message.c_str()));
     }
     
-    // performs editor input and logic returns 1 for program termination
+    // performs editor input and logic returns state to go to next
     states logic () {
       SDL_Point touchLocation; // location of touch
-      static int touchTimeStart; // time touch started
-
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
           return QUIT; // quit
@@ -269,27 +268,27 @@ class ExperimentEditor {
           // get event location and start time
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          touchTimeStart = UI::event.tfinger.timestamp;
+          touchTimeStart_ = UI::event.tfinger.timestamp;
 
           // only use buttons if not holding anything
-          if (heldStep == nullptr && heldCycle == nullptr) {
+          if (heldStep_ == nullptr && heldCycle_ == nullptr) {
             
             // type numbers if a text box is selected and a putton is pressed
-            if (selectedTextBox != nullptr) {
+            if (selectedTextBox_ != nullptr) {
               for (int i = 0; i < 12; i++) {
-                SDL_Rect keyRect = keys[i].getRect();
+                SDL_Rect keyRect = keys_[i].getRect();
                 if (SDL_PointInRect(&touchLocation, &keyRect)) {
-                  keys[i].press(selectedTextBox);
+                  keys_[i].press(selectedTextBox_);
                 }
               }
             }
 
             // check if start/abort/reset button is pressed
-            SDL_Rect startStopButtonRect = startStopButton.getRect();
-            if (SDL_PointInRect(&touchLocation, &startStopButtonRect)) {
-              if (state_ == running_) {
+            SDL_Rect startStopButton_Rect = startStopButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &startStopButton_Rect)) {
+              if (state_ == RUNNING_) {
                 abortExperiment(); 
-              } else if (state_ == done_ || state_ == abort_) {
+              } else if (state_ == DONE_ || state_ == ABORT_) {
                 resetExperiment();
               } else {
                 startExperiment();
@@ -297,14 +296,14 @@ class ExperimentEditor {
             }
 
             // load button
-            SDL_Rect loadButtonRect = loadButton.getRect();
-            if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+            SDL_Rect loadButton_Rect = loadButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &loadButton_Rect)) {
               return LOAD_MENU;
             }
 
             // save button
-            SDL_Rect saveButtonRect = saveButton.getRect();
-            if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
+            SDL_Rect saveButton_Rect = saveButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &saveButton_Rect)) {
               return SAVE_MENU;
             }
           }
@@ -320,62 +319,62 @@ class ExperimentEditor {
           touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
           
           // only allow motion if an experiment is not running
-          if (state_ != running_) {
+          if (state_ != RUNNING_) {
 
             // if touch speed is grater than 5
-            SDL_Rect buttonPaddingRect = buttonPadding.getRect();
+            SDL_Rect buttonPadding_Rect = buttonPadding_.getRect();
             if (abs(touchDelta.x) + abs(touchDelta.y) > 5) {
               
               // if touch is over button padding
-              if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
-                SDL_Rect newStepRect = newStep->getRect();
+              if (SDL_PointInRect(&touchLocation, &buttonPadding_Rect)) {
+                SDL_Rect newStep_Rect = newStep_->getRect();
 
                 // if touching new step pick it up and not holding anything
-                if (SDL_PointInRect(&touchLocation, &newStepRect) && heldStep == nullptr && heldCycle == nullptr) {
-                  heldStep = newStep;
+                if (SDL_PointInRect(&touchLocation, &newStep_Rect) && heldStep_ == nullptr && heldCycle_ == nullptr) {
+                  heldStep_ = newStep_;
                 }
               } else { // touch is not on the button padding
                 // if not holding anything
-                if (heldStep == nullptr && heldCycle == nullptr) {
+                if (heldStep_ == nullptr && heldCycle_ == nullptr) {
                   
                   // look at all the cycles
-                  for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
+                  for (unsigned int i = 0; i < cycleArray_.cycles_.size(); i++) {
                     // look at all the steps of this cycle
-                    for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+                    for (unsigned int j = 0; j < cycleArray_.cycles_[i]->steps_.size(); j++) {
                       
                       // if touchin this step pick it up
-                      SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
+                      SDL_Rect stepRect = cycleArray_.cycles_[i]->steps_[j]->getRect();
                       if (SDL_PointInRect(&touchLocation, &stepRect)) {
-                        heldStep = cycleArray.cycles_[i]->removeStep(j);
+                        heldStep_ = cycleArray_.cycles_[i]->removeStep(j);
                       }
                     }
 
                     // if touching this cycle pick it up
-                    SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
+                    SDL_Rect cycleRect = cycleArray_.cycles_[i]->getRect();
                     if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
-                      heldCycle = cycleArray.removeCycle(i);
+                      heldCycle_ = cycleArray_.removeCycle(i);
                     }
                   }
 
                   // pan around cycle view
-                  float cycleArrayPosX = touchDelta.x + cycleArray.getPoint().x; 
-                  if (cycleArrayPosX < -110 * (int)cycleArray.cycles_.size() + 345) {
-                    cycleArrayPosX = -110 * (int)cycleArray.cycles_.size() + 345;
+                  float cycleArray_PosX = touchDelta.x + cycleArray_.getPoint().x; 
+                  if (cycleArray_PosX < -110 * (int)cycleArray_.cycles_.size() + 345) {
+                    cycleArray_PosX = -110 * (int)cycleArray_.cycles_.size() + 345;
                   }
-                  if (cycleArrayPosX > 5) {
-                    cycleArrayPosX = 5;
+                  if (cycleArray_PosX > 5) {
+                    cycleArray_PosX = 5;
                   }
-                  cycleArray.setXY(cycleArrayPosX, 5);
+                  cycleArray_.setXY(cycleArray_PosX, 5);
                 }
               }
             }
 
             //move held cycle or step if any
-            if (heldCycle != nullptr) {
-              heldCycle->setXY(touchLocation.x - 50, touchLocation.y - 23);
+            if (heldCycle_ != nullptr) {
+              heldCycle_->setXY(touchLocation.x - 50, touchLocation.y - 23);
             }
-            if (heldStep != nullptr) {
-              heldStep->setXY(touchLocation.x - 50, touchLocation.y - 23);
+            if (heldStep_ != nullptr) {
+              heldStep_->setXY(touchLocation.x - 50, touchLocation.y - 23);
             }
           }
 
@@ -387,131 +386,131 @@ class ExperimentEditor {
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
           
           // if not holding anuthing and the system is not running
-          if (heldStep == nullptr && heldCycle == nullptr && state_ != running_) {
+          if (heldStep_ == nullptr && heldCycle_ == nullptr && state_ != RUNNING_) {
             
             // if the touch event was under half a seccond
-            if (UI::event.tfinger.timestamp - touchTimeStart <= 500) { // tap
+            if (UI::event.tfinger.timestamp - touchTimeStart_ <= 500) { // tap
               
               // look at all the cycles
-              for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
+              for (unsigned int i = 0; i < cycleArray_.cycles_.size(); i++) {
                 
                 // look at all the steps in this cycle
-                for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+                for (unsigned int j = 0; j < cycleArray_.cycles_[i]->steps_.size(); j++) {
                   
                   // if taped on this step
-                  SDL_Rect stepRect = cycleArray.cycles_[i]->steps_[j]->getRect();
+                  SDL_Rect stepRect = cycleArray_.cycles_[i]->steps_[j]->getRect();
                   if (SDL_PointInRect(&touchLocation, &stepRect)) {
                     // if tapped on the duration text box, select it
                     if (touchLocation.y > stepRect.y + stepRect.h / 2) {
-                      if (selectedTextBox != nullptr) { // deselect old text box
-                        selectedTextBox->formatNumber();
-                        selectedTextBox->deselect();
+                      if (selectedTextBox_ != nullptr) { // deselect old text box
+                        selectedTextBox_->formatNumber();
+                        selectedTextBox_->deselect();
                       } 
                       // select new text box
-                      selectedTextBox = cycleArray.cycles_[i]->steps_[j]->getDuration();
-                      selectedTextBox->select();
+                      selectedTextBox_ = cycleArray_.cycles_[i]->steps_[j]->getDuration();
+                      selectedTextBox_->select();
                     // if tapped on the temperature text box, select it
                     } else {
-                      if (selectedTextBox != nullptr) { // deselect old text box
-                        selectedTextBox->formatNumber();
-                        selectedTextBox->deselect();
+                      if (selectedTextBox_ != nullptr) { // deselect old text box
+                        selectedTextBox_->formatNumber();
+                        selectedTextBox_->deselect();
                       }
                       // select new text box
-                      selectedTextBox = cycleArray.cycles_[i]->steps_[j]->getTemperature();
-                      selectedTextBox->select();
+                      selectedTextBox_ = cycleArray_.cycles_[i]->steps_[j]->getTemperature();
+                      selectedTextBox_->select();
                     }
                   }
                 }
                 // if tapped on the number of cycles text box, select it
-                SDL_Rect cycleRect = cycleArray.cycles_[i]->getRect();
+                SDL_Rect cycleRect = cycleArray_.cycles_[i]->getRect();
                 if (SDL_PointInRect(&touchLocation, &cycleRect) && touchLocation.y < cycleRect.y + 36) {
-                  if (selectedTextBox != nullptr) { // deselect old text box
-                    selectedTextBox->formatNumber();
-                    selectedTextBox->deselect();
+                  if (selectedTextBox_ != nullptr) { // deselect old text box
+                    selectedTextBox_->formatNumber();
+                    selectedTextBox_->deselect();
                   }
                   // select new text box
-                  selectedTextBox = cycleArray.cycles_[i]->getNumberOfCycles();
-                  selectedTextBox->select();
+                  selectedTextBox_ = cycleArray_.cycles_[i]->getNumberOfCycles();
+                  selectedTextBox_->select();
                 }
               }
             }
           }
 
           // if touch end is over button padding delete
-          SDL_Rect buttonPaddingRect = buttonPadding.getRect();
-          if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
+          SDL_Rect buttonPadding_Rect = buttonPadding_.getRect();
+          if (SDL_PointInRect(&touchLocation, &buttonPadding_Rect)) {
             // delete whatever, if any is held
-            if (heldStep != nullptr) {
-              delete heldStep;
-              heldStep = nullptr;
-            } else if (heldCycle != nullptr) {
-              delete heldCycle;
-              heldCycle = nullptr;
+            if (heldStep_ != nullptr) {
+              delete heldStep_;
+              heldStep_ = nullptr;
+            } else if (heldCycle_ != nullptr) {
+              delete heldCycle_;
+              heldCycle_ = nullptr;
             }
           }
 
           // if holding a step and not over button padding
-          if (heldStep != nullptr) {
-            SDL_Point cycleArrayPos = cycleArray.getPoint();
+          if (heldStep_ != nullptr) {
+            SDL_Point cycleArray_Pos = cycleArray_.getPoint();
             // look at all the cycles
-            for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-              if (touchLocation.x - cycleArrayPos.x < (int)i * 110 + 110) {
+            for (unsigned int i = 0; i < cycleArray_.cycles_.size(); i++) {
+              if (touchLocation.x - cycleArray_Pos.x < (int)i * 110 + 110) {
                 // look at all the steps in this cycle
-                for (unsigned int j = 0; j < cycleArray.cycles_[i]->steps_.size(); j++) {
+                for (unsigned int j = 0; j < cycleArray_.cycles_[i]->steps_.size(); j++) {
                   // if touch is inside cycle, put step inside cycle
-                  if (touchLocation.y - cycleArrayPos.y < (int)j * 52 + 54) {
-                    cycleArray.cycles_[i]->addStep(j, heldStep);
-                    heldStep = nullptr;
+                  if (touchLocation.y - cycleArray_Pos.y < (int)j * 52 + 54) {
+                    cycleArray_.cycles_[i]->addStep(j, heldStep_);
+                    heldStep_ = nullptr;
                     break;
                   }
                 }
                 // touch is below cycle, add step to end of cycle 
-                if (heldStep != nullptr) {
-                  cycleArray.cycles_[i]->addStep(cycleArray.cycles_[i]->steps_.size(), heldStep);
-                  heldStep = nullptr;
+                if (heldStep_ != nullptr) {
+                  cycleArray_.cycles_[i]->addStep(cycleArray_.cycles_[i]->steps_.size(), heldStep_);
+                  heldStep_ = nullptr;
                 }
                 break;
               }
             }
             // touch is not on any cycle, create new cycle at end and place step in it
-            if (heldStep != nullptr) {
-              cycleArray.addCycle(cycleArray.cycles_.size(), new UI::Cycle());
-              cycleArray.cycles_[cycleArray.cycles_.size() - 1]->addStep(0, heldStep);
-              heldStep = nullptr;
+            if (heldStep_ != nullptr) {
+              cycleArray_.addCycle(cycleArray_.cycles_.size(), new UI::Cycle());
+              cycleArray_.cycles_[cycleArray_.cycles_.size() - 1]->addStep(0, heldStep_);
+              heldStep_ = nullptr;
             }
           }
 
           // if holding cycle and not over button padding
-          if (heldCycle != nullptr) {
-            SDL_Point cycleArrayPos = cycleArray.getPoint();
+          if (heldCycle_ != nullptr) {
+            SDL_Point cycleArray_Pos = cycleArray_.getPoint();
             // look at all the cycles
-            for (unsigned int i = 0; i < cycleArray.cycles_.size(); i++) {
-              // if touch is inside cycleArray, put cycle inside the array
-              if (touchLocation.x - cycleArrayPos.x < (int)i * 110 + 55) {
-                cycleArray.addCycle(i, heldCycle);
-                heldCycle = nullptr;
+            for (unsigned int i = 0; i < cycleArray_.cycles_.size(); i++) {
+              // if touch is inside cycleArray_, put cycle inside the array
+              if (touchLocation.x - cycleArray_Pos.x < (int)i * 110 + 55) {
+                cycleArray_.addCycle(i, heldCycle_);
+                heldCycle_ = nullptr;
                 break;
               }
             }
             // touch outside cycle array, put cycle at the end of cycle array
-            if (heldCycle != nullptr) {
-              cycleArray.addCycle(cycleArray.cycles_.size(), heldCycle);
-              heldCycle = nullptr;
+            if (heldCycle_ != nullptr) {
+              cycleArray_.addCycle(cycleArray_.cycles_.size(), heldCycle_);
+              heldCycle_ = nullptr;
             }
           }
         }
       }
 
       // if the new step was taken make a new one
-      if (newStep == heldStep || newStep == nullptr) {
-        newStep = new UI::CycleStep(560, 26);
+      if (newStep_ == heldStep_ || newStep_ == nullptr) {
+        newStep_ = new UI::CycleStep(560, 26);
       }
 
       // remove empty cycle from the cycle array
-      cycleArray.removeEmptyCycles();
+      cycleArray_.removeEmptyCycles();
 
       // update plc if an experiment is running
-      if (state_ == running_) {
+      if (state_ == RUNNING_) {
         updateStep();
       }
       return EDITOR_MENU;
@@ -523,39 +522,39 @@ class ExperimentEditor {
       SDL_SetRenderDrawColor(UI::renderer, 74, 84, 98, 255);
       SDL_RenderClear(UI::renderer);
       
-      cycleArray.render();
-      buttonPadding.render();
-      startStopButton.render();
-      loadButton.render();
-      saveButton.render();
+      cycleArray_.render();
+      buttonPadding_.render();
+      startStopButton_.render();
+      loadButton_.render();
+      saveButton_.render();
       for (int i = 0; i < 12; i++) {
-        keys[i].render();
+        keys_[i].render();
       }
       
-      dragToAdd.render();
-      newStep->render();
+      dragToAdd_.render();
+      newStep_->render();
 
-      if (heldStep != nullptr || heldCycle != nullptr) {
-        buttonCover.render();
-        recycleBin.render();
+      if (heldStep_ != nullptr || heldCycle_ != nullptr) {
+        buttonCover_.render();
+        recycleBin_.render();
       }
 
-      infoBarPadding.render();
-      statusIndicator.render();
-      progressBarPadding.render();
-      saveFileText.render();
+      infoBarPadding_.render();
+      statusIndicator_.render();
+      progressBar_Padding_.render();
+      saveFileText_.render();
 
-      int progressBarSize = progressBar.getRect().w;
+      int progressBarSize = progressBar_.getRect().w;
       if (progressBarSize >= 3) {
-        progressBar.render();
+        progressBar_.render();
       }
-      targetTemperature.render();
+      targetTemperature_.render();
  
-      if (heldStep != nullptr) {
-        heldStep->render();
+      if (heldStep_ != nullptr) {
+        heldStep_->render();
       }
-      if (heldCycle != nullptr) {
-        heldCycle->render();
+      if (heldCycle_ != nullptr) {
+        heldCycle_->render();
       }
       // present render
       SDL_RenderPresent(UI::renderer);
@@ -563,21 +562,27 @@ class ExperimentEditor {
 
     // save experiment in cycle array
     void save (std::string path) {
-      saveFileText.setText(path);
-      cycleArray.save(path);
+      saveFileText_.setText(path);
+      cycleArray_.save(path);
     }
 
     // load experiment into cycle array
     void load (std::string path) {
-      saveFileText.setText(path);
-      cycleArray.load(path);
+      saveFileText_.setText(path);
+      cycleArray_.load(path);
     }
 
     ~ExperimentEditor () {
-      delete selectedTextBox;
-      delete newStep;
-      delete heldStep;
-      delete heldCycle;
+      if (selectedTextBox_ != nullptr) {
+        delete selectedTextBox_;
+      }
+      delete newStep_;
+      if (selectedTextBox_ != nullptr) {
+        delete heldStep_;
+      }
+      if (selectedTextBox_ != nullptr) {
+        delete heldCycle_;
+      }
       closeSerial();
     }
 };
@@ -585,17 +590,21 @@ class ExperimentEditor {
 class MainMenu {
   private:
     ExperimentEditor* editor_; // the editor to enteract with
-    UI::Text mainText;
-    UI::Button newButton;
-    UI::Button loadButton;
+    
+    // UI elements
+    UI::Text mainText_;
+    UI::Button newButton_;
+    UI::Button loadButton_;
+
   public:
     MainMenu (ExperimentEditor* editor) :
-    mainText("fonts/consola.ttf", 100, 10, 10, "FLC-PCR Main Menu"),
-    newButton(10, 120, 780, 100, "New Experiment"),
-    loadButton(10, 230, 780, 100, "Load Experiment") {
+    mainText_("fonts/consola.ttf", 100, 10, 10, "FLC-PCR Main Menu"),
+    newButton_(10, 120, 780, 100, "New Experiment"),
+    loadButton_(10, 230, 780, 100, "Load Experiment") {
       editor_ = editor;
     }
 
+    // performs main menu input and logic returns state to go to next
     states logic () {
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
@@ -611,23 +620,23 @@ class MainMenu {
               break;
           }
         } else if (UI::event.type == SDL_FINGERDOWN) {
+          // button presses
           SDL_Point touchLocation;
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          SDL_Rect newButtonRect = newButton.getRect();
 
           // new experiment button pressed
+          SDL_Rect newButtonRect = newButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
             editor_->load("/home/pi/Untitled.exp");
             return EDITOR_MENU;
           }
 
           // load experiment pressed
-          SDL_Rect loadButtonRect = loadButton.getRect();
+          SDL_Rect loadButtonRect = loadButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
             return LOAD_MENU;
           }
-
         }
       }
       return MAIN_MENU;
@@ -638,9 +647,9 @@ class MainMenu {
       SDL_SetRenderDrawColor(UI::renderer, 139, 147, 175, 255);
       SDL_RenderClear(UI::renderer);
       
-      mainText.render();
-      newButton.render();
-      loadButton.render();
+      mainText_.render();
+      newButton_.render();
+      loadButton_.render();
 
       // present render
       SDL_RenderPresent(UI::renderer);
@@ -650,97 +659,105 @@ class MainMenu {
 class LoadSaveMenu {
   private:
     ExperimentEditor* editor_; // the editor to enteract with
-    UI::Padding pathSelection_;
-    int selectedPathIndex_ = -1;
-    std::vector<UI::Text> experimentPaths_;
-    std::string savePath_ = "/home/pi/experiments/";
-    float textScroll_ = 55;
-    int touchTimeStart = 0;
-    UI::Padding buttonPadding;
-    UI::Button newButton;
-    UI::Button loadButton;
-    UI::Button saveButton;
-    UI::Button backButton;
-    UI::Button deleteButton;
-    bool newSaveFile = false;
-    UI::Padding newSaveCover;
-    UI::Text fileText;
-    UI::TextBox newSavePath;
-    const int KEYSIZE = 70;
-    const static int NUM_OF_KEYS = 46;
-    UI::Key keys [NUM_OF_KEYS];
-    UI::Button doneButton;
-    UI::Button cancelButton;
+    UI::Padding pathSelection_; // padding behind the selected path
+    int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection
+    std::vector<UI::Text> experimentPaths_; // file paths
+    std::string savePath_ = "/home/pi/experiments/"; // folder to look in for files
+    float textScroll_ = 55; // vertical position of experiment paths
+    int touchTimeStart_ = 0; // for keeping track of taps
+    
+    // UI elements
+    UI::Padding buttonPadding_;
+    UI::Button newButton_;
+    UI::Button loadButton_;
+    UI::Button saveButton_;
+    UI::Button backButton_;
+    UI::Button deleteButton_;
+
+    // save new file popup UI elements
+    bool newSaveFile_ = false; // is the save new file popup open
+    UI::Padding newSaveCover_;
+    UI::Text fileText_;
+    UI::TextBox newSavePath_;
+    const int KEY_SIZE_ = 71;
+    const static int NUM_OF_KEYS_ = 45;
+    UI::Key keys_ [NUM_OF_KEYS_];
+    UI::Button doneButton_;
+    UI::Button cancelButton_;
+
   public:
     LoadSaveMenu (ExperimentEditor* editor) :
     pathSelection_("img/padding/S_Blue.png", 2, -2, 8, 804, 20),
-    buttonPadding("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
-    newButton(5, 5, 100, 35, "New"),
-    loadButton(110, 5, 100, 35, "Load"),
-    saveButton(215, 5, 100, 35, "Save"),
-    backButton(320, 5, 100, 35, "Cancel"),
-    deleteButton(695, 5, 100, 35, "Delete"),
-    newSaveCover("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
-    fileText("fonts/consola.ttf", 16, 15, 15, "Filename :"),
-    newSavePath(110, 15, 670, 21),
-    keys{UI::Key(0, 0, KEYSIZE, KEYSIZE, '1', "1"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '2', "2"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '3', "3"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '4', "4"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '5', "5"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '6', "6"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '7', "7"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '8', "8"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '9', "9"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '0', "0"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'q', "q"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'w', "w"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'e', "e"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'r', "r"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 't', "t"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'y', "y"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'u', "u"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'i', "i"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'o', "o"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'p', "p"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'a', "a"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 's', "s"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'd', "d"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'f', "f"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'g', "g"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'h', "h"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'j', "j"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'k', "k"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'l', "l"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, ';', ";"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'z', "z"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'x', "x"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'c', "c"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'v', "v"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'b', "b"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'n', "n"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, 'm', "m"),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, ',', ","),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '.', "."),
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '/', "/"), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, ' ', ""), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '-', "-"), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '+', "+"), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '=', "="), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '_', "_"), 
-         UI::Key(0, 0, KEYSIZE, KEYSIZE, '\b', "de")},
-    doneButton(15, 430, 100, 35, "Done"),
-    cancelButton(120, 430, 100, 35, "Cancel") {
+    buttonPadding_("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
+    newButton_(5, 5, 100, 35, "New"),
+    loadButton_(110, 5, 100, 35, "Load"),
+    saveButton_(215, 5, 100, 35, "Save"),
+    backButton_(320, 5, 100, 35, "Cancel"),
+    deleteButton_(695, 5, 100, 35, "Delete"),
+    newSaveCover_("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
+    fileText_("fonts/consola.ttf", 16, 15, 15, "Filename :"),
+    newSavePath_(110, 15, 670, 21),
+    keys_{UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '1', "1"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '2', "2"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '3', "3"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '4', "4"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '5', "5"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '6', "6"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '7', "7"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '8', "8"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '9', "9"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '0', "0"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'q', "q"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'w', "w"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'e', "e"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'r', "r"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 't', "t"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'y', "y"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'u', "u"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'i', "i"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'o', "o"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'p', "p"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'a', "a"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 's', "s"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'd', "d"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'f', "f"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'g', "g"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'h', "h"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'j', "j"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'k', "k"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'l', "l"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ';', ";"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'z', "z"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'x', "x"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'c', "c"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'v', "v"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'b', "b"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'n', "n"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'm', "m"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ',', ","),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '.', "."), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ' ', ""), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '-', "-"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '+', "+"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '=', "="), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '_', "_"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de")},
+    doneButton_(15, 430, 100, 35, "Done"),
+    cancelButton_(120, 430, 100, 35, "Cancel") {
       updatePaths();
       editor_ = editor;
-      for (int i = 0; i < NUM_OF_KEYS; i++) {
-        keys[i].setXY(15 + (KEYSIZE + 5) * (i % 10), 41 + (KEYSIZE + 5) * (i / 10));
+      // position keys_
+      for (int i = 0; i < NUM_OF_KEYS_; i++) {
+        keys_[i].setXY(15 + (KEY_SIZE_ + 5) * (i % 10), 41 + (KEY_SIZE_ + 5) * (i / 10));
       }
     }
     
+    // checks for new files and updates the list of experiment files
     void updatePaths () {
       experimentPaths_.clear();
-      for (const auto & entry : std::filesystem::directory_iterator(savePath_)) {
+      // iterate through all files including subdirectories
+      for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
+        // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
           UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string(), false);
           experimentPaths_.push_back(entryText);
@@ -749,6 +766,7 @@ class LoadSaveMenu {
       movePaths();
     }
 
+    // position experiment paths
     void movePaths () {
       for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
         experimentPaths_[i].setXY(15, i * 21 + textScroll_);
@@ -756,10 +774,12 @@ class LoadSaveMenu {
       moveSelection();
     }
 
+    // position experiment path selection
     void moveSelection () { 
       pathSelection_.setXY(-2, selectedPathIndex_ * 21 + textScroll_ - 2);
     }
 
+    // performs load and save menu input and logic returns state to go to next
     states logic (states state) {
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
@@ -775,32 +795,43 @@ class LoadSaveMenu {
               break;
           }
         } else if (UI::event.type == SDL_FINGERDOWN) {
+          // button presses
           SDL_Point touchLocation;
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          if (!newSaveFile) {  
-            touchTimeStart = UI::event.tfinger.timestamp;
-            SDL_Rect newButtonRect = newButton.getRect();
+          if (!newSaveFile_) { // disable if popup is open
+            touchTimeStart_ = UI::event.tfinger.timestamp;
+            // new button
+            SDL_Rect newButtonRect = newButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
               editor_->load("/home/pi/Untitled.exp");
+              selectedPathIndex_ = -1;
+              textScroll_ = 55;
+              movePaths();
               return EDITOR_MENU;
             }
-            SDL_Rect loadButtonRect = loadButton.getRect();
+            // load button
+            SDL_Rect loadButtonRect = loadButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
               if (selectedPathIndex_ != -1) { 
                 editor_->load(experimentPaths_[selectedPathIndex_].getText());
+                selectedPathIndex_ = -1;
+                textScroll_ = 55;
+                movePaths();
                 return EDITOR_MENU;
               }
             }
-            SDL_Rect saveButtonRect = saveButton.getRect();
+            // save button
+            SDL_Rect saveButtonRect = saveButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
               if (selectedPathIndex_ != -1) { 
                 editor_->save(experimentPaths_[selectedPathIndex_].getText());
               } else {
-                newSaveFile = true;
+                newSaveFile_ = true;
               }
             }
-            SDL_Rect deleteButtonRect = deleteButton.getRect();
+            // delete button
+            SDL_Rect deleteButtonRect = deleteButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
               if (selectedPathIndex_ != -1) {
                 remove(experimentPaths_[selectedPathIndex_].getText().c_str());
@@ -808,31 +839,39 @@ class LoadSaveMenu {
                 updatePaths();
               } 
             }
-            SDL_Rect backButtonRect = backButton.getRect();
+            // back button
+            SDL_Rect backButtonRect = backButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &backButtonRect)) {
+              selectedPathIndex_ = -1;
+              textScroll_ = 55;
+              movePaths();
               return PREVIOUS;
             }
-          } else {
-            for (int i = 0; i < NUM_OF_KEYS; i++) {
-              SDL_Rect keyRect = keys[i].getRect();
+          } else { // popup is open
+            // key presses
+            for (int i = 0; i < NUM_OF_KEYS_; i++) {
+              SDL_Rect keyRect = keys_[i].getRect();
               if (SDL_PointInRect(&touchLocation, &keyRect)) {
-                keys[i].press(&newSavePath);
+                keys_[i].press(&newSavePath_);
               } 
             }
-            SDL_Rect doneRect = doneButton.getRect();
+            // done button
+            SDL_Rect doneRect = doneButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &doneRect)) {  
-              editor_->save(savePath_ + newSavePath.getText() + ".exp"); 
-              newSaveFile = false;
+              editor_->save(savePath_ + newSavePath_.getText() + ".exp"); 
+              newSaveFile_ = false;
               updatePaths(); 
             }
-            SDL_Rect cancelRect = cancelButton.getRect();
+            // cancel button
+            SDL_Rect cancelRect = cancelButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &cancelRect)) {  
-              newSaveFile = false;
+              newSaveFile_ = false;
               updatePaths();
             }
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
-          if (!newSaveFile) {  
+          if (!newSaveFile_) {  // disable if popup is open
+            // scroll through files
             if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
               textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
               if (textScroll_ < 55 + 21 - (int)experimentPaths_.size() * 21) {
@@ -845,13 +884,12 @@ class LoadSaveMenu {
             }
           }
         } else if (UI::event.type == SDL_FINGERUP) {
-         if (!newSaveFile) { 
+         if (!newSaveFile_) { // disable if popup is open
             SDL_Point touchLocation;
             touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
             touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-            
-            if (UI::event.tfinger.timestamp - touchTimeStart <= 200 && touchLocation.y > 50) {
-              // tap path
+            // select path
+            if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > 50) {
               selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
               if (selectedPathIndex_ >= (int)experimentPaths_.size() || selectedPathIndex_ < 0) {
                 selectedPathIndex_ = -1;
@@ -877,22 +915,23 @@ class LoadSaveMenu {
         experimentPaths_[i].render();
       }
 
-      buttonPadding.render();
-      newButton.render();
-      loadButton.render();
-      saveButton.render();
-      backButton.render();
-      deleteButton.render();
+      buttonPadding_.render();
+      newButton_.render();
+      loadButton_.render();
+      saveButton_.render();
+      backButton_.render();
+      deleteButton_.render();
 
-      if (newSaveFile) {
-        newSaveCover.render();
-        fileText.render();
-        newSavePath.render();
-        for (int i = 0; i < NUM_OF_KEYS; i++) {
-          keys[i].render();
+      // draw new save file popup
+      if (newSaveFile_) {
+        newSaveCover_.render();
+        fileText_.render();
+        newSavePath_.render();
+        for (int i = 0; i < NUM_OF_KEYS_; i++) {
+          keys_[i].render();
         }
-        doneButton.render();
-        cancelButton.render();
+        doneButton_.render();
+        cancelButton_.render();
       }
 
       // present render
