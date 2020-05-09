@@ -129,6 +129,8 @@ namespace UI {
       Image durationImage_;
       TextBox temperature_;
       TextBox duration_;
+      Text c_;
+      Text s_;
   };
   
   // for visually representing a thermal cycle that can be repeated

@@ -361,7 +361,7 @@ namespace UI {
  
   TextBox::TextBox (int x, int y, int w, int h, std::string text) :
   padding_("img/padding/S_Grey_3.png", 2, x, y, w, h),
-  text_("fonts/consola.ttf", h, x + 6, y + 2, text) {
+  text_("fonts/consola.ttf", h, x + 2, y + 2, text) {
     x_ = x;
     y_ = y;
     w_ = w;
@@ -393,7 +393,7 @@ namespace UI {
     x_ = x;
     y_ = y;
     padding_.setXY(x, y);
-    text_.setXY(x + 6, y + 2);
+    text_.setXY(x + 2, y + 2);
   }
 
   SDL_Rect TextBox::getRect () {
@@ -413,8 +413,10 @@ namespace UI {
   padding_("img/padding/R_Grey_1.png", 5, x, y, 100, 47),
   temperatureImage_("img/Thermometer.png", x + 5, y + 5),
   durationImage_("img/Clock.png", x + 5, y + 26),
-  temperature_(x + 26, y + 5, 69, 16, "0"),
-  duration_(x + 26, y + 26, 69, 16, "0") {
+  temperature_(x + 26, y + 5, 52, 16, "0"),
+  duration_(x + 26, y + 26, 52, 16, "0"),
+  c_("fonts/consola.ttf", 16, x + 79, y + 5, "\xB0" + std::string(1, 'C')),
+  s_("fonts/consola.ttf", 16, x + 84, y + 26, "S") {
     x_ = x;
     y_ = y;
   }
@@ -425,6 +427,8 @@ namespace UI {
     durationImage_.render();
     temperature_.render();
     duration_.render();
+    c_.render();
+    s_.render();
   }
 
   void CycleStep::setXY (int x, int y) {
@@ -433,6 +437,8 @@ namespace UI {
     durationImage_.setXY(x + 5, y + 26);
     temperature_.setXY(x + 26, y + 5);
     duration_.setXY(x + 26, y + 26);
+    c_.setXY(x + 79, y + 5);
+    s_.setXY(x + 84, y + 26);
     x_ = x;
     y_ = y;
   }
@@ -711,7 +717,7 @@ namespace UI {
       if (text.size() > 0) {
         target->setText(text.substr(0, text.size() - 1));
       }
-    } else if (text.size() < 6) {
+    } else if (text.size() < 5) {
       if (ch_ == '.') {
         bool hasDecimal = false;
         for (unsigned int i = 0; i < text.size(); i++) {

@@ -661,12 +661,13 @@ class LoadSaveMenu {
     ExperimentEditor* editor_; // the editor to enteract with
     UI::Padding pathSelection_; // padding behind the selected path
     int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection
-    std::vector<UI::Text> experimentPaths_; // file paths
+    std::vector<std::string> experimentPaths_; // file paths 
     std::string savePath_ = "/home/pi/experiments/"; // folder to look in for files
     float textScroll_ = 55; // vertical position of experiment paths
     int touchTimeStart_ = 0; // for keeping track of taps
     
     // UI elements
+    std::vector<UI::Text> experimentPathTexts_; // file path texts
     UI::Padding buttonPadding_;
     UI::Button newButton_;
     UI::Button loadButton_;
@@ -757,13 +758,15 @@ class LoadSaveMenu {
     
     // checks for new files and updates the list of experiment files
     void updatePaths () {
+      experimentPathTexts_.clear();
       experimentPaths_.clear();
       // iterate through all files including subdirectories
       for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
         // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
-          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string(), false);
-          experimentPaths_.push_back(entryText);
+          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4), false);
+          experimentPathTexts_.push_back(entryText);
+          experimentPaths_.push_back(entry.path().string());
         }
       }
       movePaths();
@@ -771,8 +774,8 @@ class LoadSaveMenu {
 
     // position experiment paths
     void movePaths () {
-      for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
-        experimentPaths_[i].setXY(15, i * 21 + textScroll_);
+      for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
+        experimentPathTexts_[i].setXY(15, i * 21 + textScroll_);
       }
       moveSelection();
     }
@@ -812,17 +815,19 @@ class LoadSaveMenu {
               textScroll_ = 55;
               movePaths();
               newSavePath_.setText("");
+              caps_ = false;
               return EDITOR_MENU;
             }
             // load button
             SDL_Rect loadButtonRect = loadButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
               if (selectedPathIndex_ != -1) { 
-                editor_->load(experimentPaths_[selectedPathIndex_].getText());
+                editor_->load(experimentPaths_[selectedPathIndex_]);
                 selectedPathIndex_ = -1;
                 textScroll_ = 55;
                 movePaths();
                 newSavePath_.setText("");
+                caps_ = false;
                 return EDITOR_MENU;
               }
             }
@@ -830,8 +835,12 @@ class LoadSaveMenu {
             SDL_Rect saveButtonRect = saveButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
               if (selectedPathIndex_ != -1) { 
-                editor_->save(experimentPaths_[selectedPathIndex_].getText());
+                editor_->save(experimentPaths_[selectedPathIndex_]);
+                newSavePath_.setText("");
+                caps_ = false;
               } else {
+                newSavePath_.setText("");
+                caps_ = false;
                 newSaveFile_ = true;
               }
             }
@@ -839,7 +848,7 @@ class LoadSaveMenu {
             SDL_Rect deleteButtonRect = deleteButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
               if (selectedPathIndex_ != -1) {
-                remove(experimentPaths_[selectedPathIndex_].getText().c_str());
+                remove(experimentPaths_[selectedPathIndex_].c_str());
                 selectedPathIndex_ = -1;
                 updatePaths();
               } 
@@ -851,6 +860,7 @@ class LoadSaveMenu {
               textScroll_ = 55;
               movePaths();
               newSavePath_.setText("");
+              caps_ = false;
               return PREVIOUS;
             }
           } else { // popup is open
@@ -889,8 +899,8 @@ class LoadSaveMenu {
             // scroll through files
             if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
               textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
-              if (textScroll_ < 55 + 21 - (int)experimentPaths_.size() * 21) {
-                textScroll_ = 55 + 21 - (int)experimentPaths_.size() * 21;
+              if (textScroll_ < 55 + 21 - (int)experimentPathTexts_.size() * 21) {
+                textScroll_ = 55 + 21 - (int)experimentPathTexts_.size() * 21;
               }
               if (textScroll_ > 55) {
                 textScroll_ = 55;
@@ -906,7 +916,7 @@ class LoadSaveMenu {
             // select path
             if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > 50) {
               selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
-              if (selectedPathIndex_ >= (int)experimentPaths_.size() || selectedPathIndex_ < 0) {
+              if (selectedPathIndex_ >= (int)experimentPathTexts_.size() || selectedPathIndex_ < 0) {
                 selectedPathIndex_ = -1;
               }
               moveSelection();
@@ -926,8 +936,8 @@ class LoadSaveMenu {
         pathSelection_.render();
       }
 
-      for (unsigned int i = 0; i < experimentPaths_.size(); i++) {
-        experimentPaths_[i].render();
+      for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
+        experimentPathTexts_[i].render();
       }
 
       buttonPadding_.render();
