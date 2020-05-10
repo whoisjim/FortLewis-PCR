@@ -10,7 +10,7 @@
 - [ ] polish save keybord
 - [ ] polish main menu
 - [ ] add are you sure dialog
-- [ ] add save reminder
+- [X] add save reminder
 - [ ] add error checking
 - [ ] setup program auto launch
 - [ ] add button amimations

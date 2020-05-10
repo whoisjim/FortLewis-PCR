@@ -21,8 +21,6 @@ namespace UI {
 
   extern std::vector<std::string> fontPaths; // contans the path and fontsize of each loaded font
   extern std::vector<TTF_Font*> fonts; // contains each loaded font
- 
-  enum fileStates {DEFAULT_FILE, SAVED, UNSAVED};
 
   int init(); // initializes sdls
   bool takeScreenShot(std::string path);

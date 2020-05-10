@@ -31,7 +31,10 @@ class ExperimentEditor {
     enum states_ {IDLE_, RUNNING_, DONE_, ABORT_}; // system states
     states_ state_ = IDLE_; // current system state<F3>
     int experimentIndex_ = 0; // current temperature step position
- 
+
+    enum fileStates_ {SAVED_, UNSAVED_};
+    fileStates_ fileState_ = UNSAVED_;
+
     // UI element declarations
     UI::CycleArray cycleArray_;
     
@@ -284,6 +287,10 @@ class ExperimentEditor {
                 SDL_Rect keyRect = keys_[i].getRect();
                 if (SDL_PointInRect(&touchLocation, &keyRect)) {
                   keys_[i].press(selectedTextBox_);
+                  if (fileState_ == SAVED_) {
+                    saveFileText_.setText(saveFileText_.getText() + "*");
+                  }
+                  fileState_ = UNSAVED_;
                 }
               }
             }
@@ -379,9 +386,17 @@ class ExperimentEditor {
             //move held cycle or step if any
             if (heldCycle_ != nullptr) {
               heldCycle_->setXY(touchLocation.x - 50, touchLocation.y - 23);
+              if (fileState_ == SAVED_) {
+                saveFileText_.setText(saveFileText_.getText() + "*");
+              }
+              fileState_ = UNSAVED_;
             }
             if (heldStep_ != nullptr) {
               heldStep_->setXY(touchLocation.x - 50, touchLocation.y - 23);
+              if (fileState_ == SAVED_) {
+                saveFileText_.setText(saveFileText_.getText() + "*");
+              }
+              fileState_ = UNSAVED_;
             }
           }
 
@@ -590,16 +605,28 @@ class ExperimentEditor {
 
     // save experiment in cycle array
     void save (std::string path) {
-      saveFileText_.setText(path);
       cycleArray_.save(path);
       resetExperiment();
+      fileState_ = SAVED_;
+      for (int i = path.size() - 1; i >= 0; i--) {
+        if (path[i] == '/') {
+          saveFileText_.setText(path.substr(i + 1, path.size() - i - 5));
+          break;
+        }
+      }
     }
 
     // load experiment into cycle array
     void load (std::string path) {
-      saveFileText_.setText(path);
       cycleArray_.load(path);
       resetExperiment();
+      fileState_ = SAVED_;
+      for (int i = path.size() - 1; i >= 0; i--) {
+        if (path[i] == '/') {
+          saveFileText_.setText(path.substr(i + 1, path.size() - i - 5));
+          break;
+        }
+      } 
     }
 
     ~ExperimentEditor () {
