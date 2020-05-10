@@ -1,19 +1,19 @@
 # Raspberry Pi
-##  Todo
+## Todo
 - [X] fix load floating point problem
 - [X] add floating pont support to num key
 - [X] add estamated time to completion
 - [X] create save and load dialogue
 - [X] create main menu
-- [ ] polish save and load menu
 - [X] add shift functionality to save keybord
-- [ ] polish save keybord
-- [ ] polish main menu
-- [ ] add are you sure dialog
+- [X] add are you sure dialog
 - [X] add save reminder
-- [ ] add error checking
 - [ ] add folders to save / load
 - [ ] add external directories to save / load
+- [ ] polish save and load menu
+- [ ] polish save keybord
+- [ ] polish main menu
+- [ ] add error checking
 - [ ] setup program auto launch
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed

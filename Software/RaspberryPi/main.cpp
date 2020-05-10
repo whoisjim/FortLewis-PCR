@@ -19,6 +19,59 @@
 
 enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU, PREVIOUS};
 
+// displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed
+bool areYouSure (std::string prompt) {
+  UI::Padding promptPadding("img/padding/R_Grey_2.png", 5, 100, 100, 600, 280);
+  UI::Text promptText("fonts/consola.ttf", 16, 110, 110, prompt);
+  UI::Button okButton(105, 324, 292, 50, "Ok");
+  UI::Button cancelButton(402, 324, 292, 50, "Cancel");
+
+  // begin render, clear screen
+  SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
+  SDL_RenderClear(UI::renderer);
+
+  promptPadding.render();
+  promptText.render();
+  okButton.render();
+  cancelButton.render();
+
+  // present render
+  SDL_RenderPresent(UI::renderer);
+
+  while (true) {
+    while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+      if (UI::event.type == SDL_QUIT) { // if user hit window x button
+        return false; // quit
+      } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+        switch (UI::event.key.keysym.sym) {
+          case SDLK_ESCAPE: // pressed escape, close prompt with false
+            return false;
+            break;
+          case SDLK_s: // pressed s, take screenshot
+            static int screenshotNumber;
+            UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+            break;
+        }
+      } else if (UI::event.type == SDL_FINGERDOWN) {
+        // button presses
+        SDL_Point touchLocation;
+        touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+        touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        // ok button
+        SDL_Rect okButtonRect = okButton.getRect();
+        if (SDL_PointInRect(&touchLocation, &okButtonRect)) {
+          return true;
+        }
+        // cancel button
+        SDL_Rect cancelButtonRect = cancelButton.getRect();
+        if (SDL_PointInRect(&touchLocation, &cancelButtonRect)) {
+          return false;
+        }
+      }
+    }
+  }
+}
+
 // class for performing logic and rendering of the experiment editor where users can edit and run experiments
 class ExperimentEditor {
   private:
@@ -33,7 +86,7 @@ class ExperimentEditor {
     int experimentIndex_ = 0; // current temperature step position
 
     enum fileStates_ {SAVED_, UNSAVED_};
-    fileStates_ fileState_ = UNSAVED_;
+    fileStates_ fileState_ = SAVED_;
 
     // UI element declarations
     UI::CycleArray cycleArray_;
@@ -91,6 +144,62 @@ class ExperimentEditor {
     etaText_("fonts/consola.ttf", 16, 200, 459, "ETA"),
     saveFileText_("fonts/consola.ttf", 16, 795, 459, "", true) {
       openSerial();
+    }
+
+    // displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed still updates experiment
+    bool areYouSureUpdate (std::string prompt) {
+      UI::Padding promptPadding("img/padding/R_Grey_2.png", 5, 100, 100, 600, 280);
+      UI::Text promptText("fonts/consola.ttf", 16, 110, 110, prompt);
+      UI::Button okButton(105, 324, 292, 50, "Ok");
+      UI::Button cancelButton(402, 324, 292, 50, "Cancel");
+
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
+      SDL_RenderClear(UI::renderer);
+
+      promptPadding.render();
+      promptText.render();
+      okButton.render();
+      cancelButton.render();
+
+      // present render
+      SDL_RenderPresent(UI::renderer);
+
+      while (true) {
+        if (state_ == RUNNING_) {
+          updateStep();
+        }
+        while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+          if (UI::event.type == SDL_QUIT) { // if user hit window x button
+            return false; // quit
+          } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+            switch (UI::event.key.keysym.sym) {
+              case SDLK_ESCAPE: // pressed escape, close prompt with false
+                return false;
+                break;
+              case SDLK_s: // pressed s, take screenshot
+                static int screenshotNumber;
+                UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+                break;
+            }
+          } else if (UI::event.type == SDL_FINGERDOWN) {
+            // button presses
+            SDL_Point touchLocation;
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            // ok button
+            SDL_Rect okButtonRect = okButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &okButtonRect)) {
+              return true;
+            }
+            // cancel button
+            SDL_Rect cancelButtonRect = cancelButton.getRect();
+            if (SDL_PointInRect(&touchLocation, &cancelButtonRect)) {
+              return false;
+            }
+          }
+        }
+      }
     }
 
     // turn on and start sending temperature data to plc
@@ -299,7 +408,9 @@ class ExperimentEditor {
             SDL_Rect startStopButtonRect = startStopButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &startStopButtonRect)) {
               if (state_ == RUNNING_) {
-                abortExperiment(); 
+                if (areYouSureUpdate("Are you sure you want to abort?")) {
+                  abortExperiment(); 
+                }
               } else if (state_ == DONE_ || state_ == ABORT_) {
                 resetExperiment();
               } else {
@@ -616,6 +727,13 @@ class ExperimentEditor {
       }
     }
 
+    bool saved () {
+      if (fileState_ == SAVED_) {
+        return true;
+      }
+      return false;
+    }
+
     // load experiment into cycle array
     void load (std::string path) {
       cycleArray_.load(path);
@@ -867,6 +985,14 @@ class LoadSaveMenu {
             // new button
             SDL_Rect newButtonRect = newButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+              if (!editor_->saved()) {
+                if (!areYouSure("Creating a new file will delete the curent UNSAVED experiment.")) {
+                  selectedPathIndex_ = -1;
+                  textScroll_ = 55;
+                  movePaths();
+                  break;
+                }
+              }
               editor_->load("/home/pi/Untitled.exp");
               selectedPathIndex_ = -1;
               textScroll_ = 55;
@@ -879,6 +1005,14 @@ class LoadSaveMenu {
             SDL_Rect loadButtonRect = loadButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
               if (selectedPathIndex_ != -1) { 
+                if (!editor_->saved()) {
+                  if (!areYouSure("Loading will delete the curent UNSAVED experiment.")) {
+                    selectedPathIndex_ = -1;
+                    textScroll_ = 55;
+                    movePaths();
+                    break;
+                  }
+                }
                 editor_->load(experimentPaths_[selectedPathIndex_]);
                 selectedPathIndex_ = -1;
                 textScroll_ = 55;
@@ -892,6 +1026,12 @@ class LoadSaveMenu {
             SDL_Rect saveButtonRect = saveButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
               if (selectedPathIndex_ != -1) { 
+                if (!areYouSure(experimentPathTexts_[selectedPathIndex_].getText() + " allreaddy exists. Overight?")) {
+                  selectedPathIndex_ = -1;
+                  textScroll_ = 55;
+                  movePaths();
+                  break;
+                }
                 editor_->save(experimentPaths_[selectedPathIndex_]);
                 newSavePath_.setText("");
                 caps_ = false;
@@ -904,7 +1044,7 @@ class LoadSaveMenu {
             // delete button
             SDL_Rect deleteButtonRect = deleteButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
-              if (selectedPathIndex_ != -1) {
+              if (selectedPathIndex_ != -1 && areYouSure("Are you sure?")) {
                 remove(experimentPaths_[selectedPathIndex_].c_str());
                 selectedPathIndex_ = -1;
                 updatePaths();
@@ -931,6 +1071,21 @@ class LoadSaveMenu {
             // done button
             SDL_Rect doneRect = doneButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &doneRect)) {  
+              bool fileAllreaddyExists = false;
+              for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
+                if (experimentPathTexts_[i].getText() == newSavePath_.getText()) {
+                  fileAllreaddyExists = true;
+                  break;
+                }
+              }
+              if (fileAllreaddyExists) {
+                if (!areYouSure(newSavePath_.getText() + " allreaddy exists. Overight?")) {
+                  selectedPathIndex_ = -1;
+                  textScroll_ = 55;
+                  movePaths();
+                  break;
+                }
+              }
               editor_->save(savePath_ + newSavePath_.getText() + ".exp"); 
               newSaveFile_ = false;
               updatePaths(); 
