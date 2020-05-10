@@ -12,6 +12,8 @@
 - [ ] add are you sure dialog
 - [X] add save reminder
 - [ ] add error checking
+- [ ] add folders to save / load
+- [ ] add external directories to save / load
 - [ ] setup program auto launch
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
