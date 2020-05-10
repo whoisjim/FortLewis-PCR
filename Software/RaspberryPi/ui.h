@@ -178,6 +178,7 @@ namespace UI {
       void load (std::string path);
       void save (std::string path);
       void clear (); // empties array
+      float getRemainingTime (int index = 0); 
       ~CycleArray();
     private:
       int x_, y_;

@@ -55,6 +55,7 @@ class ExperimentEditor {
     UI::Padding progressBar_Padding_;
     UI::Padding progressBar_;
     UI::Text targetTemperature_;
+    UI::Text etaText_;
     UI::Text saveFileText_;
 
   public:
@@ -84,6 +85,7 @@ class ExperimentEditor {
     progressBar_Padding_("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
     progressBar_("img/padding/S_Red.png", 2, 26, 459, 0, 16),
     targetTemperature_("fonts/consola.ttf", 16, 100, 459, "Idle"),
+    etaText_("fonts/consola.ttf", 16, 200, 459, "ETA"),
     saveFileText_("fonts/consola.ttf", 16, 795, 459, "", true) {
       openSerial();
     }
@@ -142,6 +144,7 @@ class ExperimentEditor {
         nextStep();
         gettimeofday(&stepStartTime_, NULL);
       }
+      etaText_.setText(secToHMS(cycleArray_.getRemainingTime(experimentIndex_)));
     }
 
     // set plc to next temperature in experiment
@@ -169,6 +172,7 @@ class ExperimentEditor {
       progressBar_.setTexture("img/padding/S_Blue.png", 2);
       state_ = DONE_;
       startStopButton_.setText("Reset");
+      etaText_.setText("ETA");  
     } 
 
     // pematurely end experiment turn plc off
@@ -179,10 +183,11 @@ class ExperimentEditor {
       progressBar_.setTexture("img/padding/S_Red.png", 2);
       state_ = ABORT_;
       startStopButton_.setText("Reset");
+      etaText_.setText("ETA");  
     }
 
     // re enables experiment editiog
-    void resetExperiment() {
+    void resetExperiment () {
       experimentIndex_ = 0;
       progressBar_.setWH(0, 16);
       targetTemperature_.setText("Idle");
@@ -284,8 +289,8 @@ class ExperimentEditor {
             }
 
             // check if start/abort/reset button is pressed
-            SDL_Rect startStopButton_Rect = startStopButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &startStopButton_Rect)) {
+            SDL_Rect startStopButtonRect = startStopButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &startStopButtonRect)) {
               if (state_ == RUNNING_) {
                 abortExperiment(); 
               } else if (state_ == DONE_ || state_ == ABORT_) {
@@ -295,16 +300,18 @@ class ExperimentEditor {
               }
             }
 
-            // load button
-            SDL_Rect loadButton_Rect = loadButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &loadButton_Rect)) {
-              return LOAD_MENU;
-            }
+            if (state_ != RUNNING_) {
+              // load button
+              SDL_Rect loadButtonRect = loadButton_.getRect();
+              if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+                return LOAD_MENU;
+              }
 
-            // save button
-            SDL_Rect saveButton_Rect = saveButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &saveButton_Rect)) {
-              return SAVE_MENU;
+              // save button
+              SDL_Rect saveButtonRect = saveButton_.getRect();
+              if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
+                return SAVE_MENU;
+              }
             }
           }
 
@@ -322,15 +329,15 @@ class ExperimentEditor {
           if (state_ != RUNNING_) {
 
             // if touch speed is grater than 5
-            SDL_Rect buttonPadding_Rect = buttonPadding_.getRect();
+            SDL_Rect buttonPaddingRect = buttonPadding_.getRect();
             if (abs(touchDelta.x) + abs(touchDelta.y) > 5) {
               
               // if touch is over button padding
-              if (SDL_PointInRect(&touchLocation, &buttonPadding_Rect)) {
-                SDL_Rect newStep_Rect = newStep_->getRect();
+              if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
+                SDL_Rect newStepRect = newStep_->getRect();
 
                 // if touching new step pick it up and not holding anything
-                if (SDL_PointInRect(&touchLocation, &newStep_Rect) && heldStep_ == nullptr && heldCycle_ == nullptr) {
+                if (SDL_PointInRect(&touchLocation, &newStepRect) && heldStep_ == nullptr && heldCycle_ == nullptr) {
                   heldStep_ = newStep_;
                 }
               } else { // touch is not on the button padding
@@ -357,14 +364,14 @@ class ExperimentEditor {
                   }
 
                   // pan around cycle view
-                  float cycleArray_PosX = touchDelta.x + cycleArray_.getPoint().x; 
-                  if (cycleArray_PosX < -110 * (int)cycleArray_.cycles_.size() + 345) {
-                    cycleArray_PosX = -110 * (int)cycleArray_.cycles_.size() + 345;
+                  float cycleArrayPosX = touchDelta.x + cycleArray_.getPoint().x; 
+                  if (cycleArrayPosX < -110 * (int)cycleArray_.cycles_.size() + 345) {
+                    cycleArrayPosX = -110 * (int)cycleArray_.cycles_.size() + 345;
                   }
-                  if (cycleArray_PosX > 5) {
-                    cycleArray_PosX = 5;
+                  if (cycleArrayPosX > 5) {
+                    cycleArrayPosX = 5;
                   }
-                  cycleArray_.setXY(cycleArray_PosX, 5);
+                  cycleArray_.setXY(cycleArrayPosX, 5);
                 }
               }
             }
@@ -437,8 +444,8 @@ class ExperimentEditor {
           }
 
           // if touch end is over button padding delete
-          SDL_Rect buttonPadding_Rect = buttonPadding_.getRect();
-          if (SDL_PointInRect(&touchLocation, &buttonPadding_Rect)) {
+          SDL_Rect buttonPaddingRect = buttonPadding_.getRect();
+          if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
             // delete whatever, if any is held
             if (heldStep_ != nullptr) {
               delete heldStep_;
@@ -451,14 +458,14 @@ class ExperimentEditor {
 
           // if holding a step and not over button padding
           if (heldStep_ != nullptr) {
-            SDL_Point cycleArray_Pos = cycleArray_.getPoint();
+            SDL_Point cycleArrayPos = cycleArray_.getPoint();
             // look at all the cycles
             for (unsigned int i = 0; i < cycleArray_.cycles_.size(); i++) {
-              if (touchLocation.x - cycleArray_Pos.x < (int)i * 110 + 110) {
+              if (touchLocation.x - cycleArrayPos.x < (int)i * 110 + 110) {
                 // look at all the steps in this cycle
                 for (unsigned int j = 0; j < cycleArray_.cycles_[i]->steps_.size(); j++) {
                   // if touch is inside cycle, put step inside cycle
-                  if (touchLocation.y - cycleArray_Pos.y < (int)j * 52 + 54) {
+                  if (touchLocation.y - cycleArrayPos.y < (int)j * 52 + 54) {
                     cycleArray_.cycles_[i]->addStep(j, heldStep_);
                     heldStep_ = nullptr;
                     break;
@@ -513,7 +520,27 @@ class ExperimentEditor {
       if (state_ == RUNNING_) {
         updateStep();
       }
+
       return EDITOR_MENU;
+    }
+
+    std::string secToHMS (int time) {
+      std::string formattedTime = "";
+      if (std::to_string(time / 3600).size() == 1) {
+        formattedTime += "0";
+      }
+      formattedTime += std::to_string(time / 3600);
+      formattedTime += ":"; 
+      if (std::to_string((time / 60) % 60).size() == 1) {
+        formattedTime += "0";
+      }
+      formattedTime += std::to_string((time / 60) % 60);
+      formattedTime += ":";
+      if (std::to_string(time % 60).size() == 1) {
+        formattedTime += "0";
+      }
+      formattedTime += std::to_string(time % 60);
+      return formattedTime;
     }
 
     // renders the UI for the cycle editor
@@ -542,6 +569,7 @@ class ExperimentEditor {
       infoBarPadding_.render();
       statusIndicator_.render();
       progressBar_Padding_.render();
+      etaText_.render();
       saveFileText_.render();
 
       int progressBarSize = progressBar_.getRect().w;
@@ -564,12 +592,14 @@ class ExperimentEditor {
     void save (std::string path) {
       saveFileText_.setText(path);
       cycleArray_.save(path);
+      resetExperiment();
     }
 
     // load experiment into cycle array
     void load (std::string path) {
       saveFileText_.setText(path);
       cycleArray_.load(path);
+      resetExperiment();
     }
 
     ~ExperimentEditor () {

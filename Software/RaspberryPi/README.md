@@ -2,13 +2,15 @@
 ##  Todo
 - [X] fix load floating point problem
 - [X] add floating pont support to num key
-- [ ] add estamated time to completion
+- [X] add estamated time to completion
 - [X] create save and load dialogue
 - [X] create main menu
 - [ ] polish save and load menu
 - [X] add shift functionality to save keybord
 - [ ] polish save keybord
 - [ ] polish main menu
+- [ ] add are you sure dialog
+- [ ] add save reminder
 - [ ] add error checking
 - [ ] setup program auto launch
 - [ ] add button amimations

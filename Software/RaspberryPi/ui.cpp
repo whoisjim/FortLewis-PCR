@@ -655,6 +655,20 @@ namespace UI {
     cycles_.clear();
   }
 
+  float CycleArray::getRemainingTime (int index) {
+    const float DEGREES_PER_SECCOND = 1.11;
+    float time = 0;
+    if (index >= size()) {
+      return 0;
+    }
+    for (int i = index; i < size() - 1; i++) {
+      time += std::stof(getStep(i)->getDuration()->getText());
+      time += abs(std::stof(getStep(i)->getTemperature()->getText()) - std::stof(getStep(i + 1)->getTemperature()->getText()) ) / DEGREES_PER_SECCOND; 
+    }
+    time += std::stof(getStep(size() - 1)->getDuration()->getText());
+    return time;
+  }
+
   CycleArray::~CycleArray () {
     clear();
   }
