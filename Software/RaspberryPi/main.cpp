@@ -847,6 +847,7 @@ class LoadSaveMenu {
     UI::Button newButton_;
     UI::Button loadButton_;
     UI::Button saveButton_;
+    UI::Button saveAsButton_;
     UI::Button backButton_;
     UI::Button deleteButton_;
 
@@ -870,7 +871,8 @@ class LoadSaveMenu {
     newButton_(5, 5, 100, 35, "New"),
     loadButton_(110, 5, 100, 35, "Load"),
     saveButton_(215, 5, 100, 35, "Save"),
-    backButton_(320, 5, 100, 35, "Cancel"),
+    saveAsButton_(320, 5, 100, 35, "SaveAs"),
+    backButton_(425, 5, 100, 35, "Cancel"),
     deleteButton_(695, 5, 100, 35, "Delete"),
     newSaveCover_("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
     fileText_("fonts/consola.ttf", 16, 15, 15, "Filename :"),
@@ -1035,11 +1037,15 @@ class LoadSaveMenu {
                 editor_->save(experimentPaths_[selectedPathIndex_]);
                 newSavePath_.setText("");
                 caps_ = false;
-              } else {
-                newSavePath_.setText("");
-                caps_ = false;
-                newSaveFile_ = true;
+                return PREVIOUS;
               }
+            }
+            // save as button
+            SDL_Rect saveAsButtonRect = saveAsButton_.getRect();
+            if (SDL_PointInRect(&touchLocation, &saveAsButtonRect)) {
+              newSavePath_.setText("");
+              caps_ = false;
+              newSaveFile_ = true;
             }
             // delete button
             SDL_Rect deleteButtonRect = deleteButton_.getRect();
@@ -1088,7 +1094,8 @@ class LoadSaveMenu {
               }
               editor_->save(savePath_ + newSavePath_.getText() + ".exp"); 
               newSaveFile_ = false;
-              updatePaths(); 
+              updatePaths();
+              return PREVIOUS;
             }
             // cancel button
             SDL_Rect cancelRect = cancelButton_.getRect();
@@ -1156,6 +1163,7 @@ class LoadSaveMenu {
       newButton_.render();
       loadButton_.render();
       saveButton_.render();
+      saveAsButton_.render();
       backButton_.render();
       deleteButton_.render();
 
