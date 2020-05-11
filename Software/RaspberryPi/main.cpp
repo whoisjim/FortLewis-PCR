@@ -17,7 +17,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU, PREVIOUS};
+enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU, HELP_MENU, PREVIOUS};
 
 // displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed
 bool areYouSure (std::string prompt) {
@@ -99,6 +99,7 @@ class ExperimentEditor {
     UI::Button startStopButton_;
     UI::Button loadButton_;
     UI::Button saveButton_;
+    UI::Button helpButton_;
     UI::Text dragToAdd_;
     UI::TextBox* selectedTextBox_ = nullptr;
     UI::CycleStep* newStep_ = nullptr;
@@ -129,12 +130,13 @@ class ExperimentEditor {
          UI::NumberKey(720, 238, 75, 75, '3', "3"),
          UI::NumberKey(560, 318, 75, 75, '0', "0"),
          UI::NumberKey(640, 318, 75, 75, '.', "."),
-         UI::NumberKey(720, 318, 75, 75, '\b', "del")},
+         UI::NumberKey(720, 318, 75, 75, '\b', "de")},
     buttonCover_("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
     recycleBin_("img/Recycle.png", 616, 176),
-    startStopButton_(665, 5, 130, 68, "Start"),
-    loadButton_(560, 398, 115, 50, "Load"),
-    saveButton_(680, 398, 115, 50, "Save"),
+    startStopButton_(665, 5, 130, 68, "Start", 40),
+    loadButton_(560, 398, 75, 50, "Load", 30),
+    saveButton_(640, 398, 75, 50, "Save", 30),
+    helpButton_(720, 398, 75, 50, "Help", 30),
     dragToAdd_("fonts/consola.ttf", 16, 560, 5, "Drag to Add"),
     infoBarPadding_("img/padding/R_Grey_1.png", 5, -10, 453, 820, 36),
     statusIndicator_("img/Red_Light.png", 5, 459), 
@@ -142,7 +144,7 @@ class ExperimentEditor {
     progressBar_("img/padding/S_Red.png", 2, 26, 459, 0, 16),
     targetTemperature_("fonts/consola.ttf", 16, 100, 459, "Idle"),
     etaText_("fonts/consola.ttf", 16, 200, 459, "ETA"),
-    saveFileText_("fonts/consola.ttf", 16, 795, 459, "", true) {
+    saveFileText_("fonts/consola.ttf", 16, 795, 459, "", -1) {
       openSerial();
     }
 
@@ -414,7 +416,13 @@ class ExperimentEditor {
               } else if (state_ == DONE_ || state_ == ABORT_) {
                 resetExperiment();
               } else {
-                startExperiment();
+                if (fileState_ == UNSAVED_) {
+                  if (areYouSureUpdate("The curent experiment is unsaved. Are you sure you want to start the experiment?")) {
+                    startExperiment();
+                  }
+                } else {
+                  startExperiment();
+                }
               }
             }
 
@@ -429,6 +437,12 @@ class ExperimentEditor {
               SDL_Rect saveButtonRect = saveButton_.getRect();
               if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
                 return SAVE_MENU;
+              }
+              
+              // help button
+              SDL_Rect helpButtonRect = helpButton_.getRect();
+              if (SDL_PointInRect(&touchLocation, &helpButtonRect)) {
+                return HELP_MENU;
               }
             }
           }
@@ -680,6 +694,8 @@ class ExperimentEditor {
       startStopButton_.render();
       loadButton_.render();
       saveButton_.render();
+      helpButton_.render();
+
       for (int i = 0; i < 12; i++) {
         keys_[i].render();
       }
@@ -770,6 +786,7 @@ class MainMenu {
     UI::Image letters_[7];
     UI::Button newButton_;
     UI::Button loadButton_;
+    UI::Button helpButton_;
 
   public:
     MainMenu (ExperimentEditor* editor) :
@@ -781,7 +798,8 @@ class MainMenu {
              UI::Image("img/letters/C.png", 0, 0),
              UI::Image("img/letters/R.png", 0, 0)},
     newButton_(10, 120, 780, 100, "New Experiment"),
-    loadButton_(10, 230, 780, 100, "Load Experiment") {
+    loadButton_(10, 230, 780, 100, "Load Experiment"),
+    helpButton_(10, 340, 780, 100, "Help") {
       editor_ = editor;
       moveLetters();
     }
@@ -827,6 +845,12 @@ class MainMenu {
           if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
             return LOAD_MENU;
           }
+
+          // help pressed
+          SDL_Rect helpButtonRect = helpButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &helpButtonRect)) {
+            return HELP_MENU;
+          }
         }
       }
       moveLetters();
@@ -843,6 +867,7 @@ class MainMenu {
       }
       newButton_.render();
       loadButton_.render();
+      helpButton_.render();
 
       // present render
       SDL_RenderPresent(UI::renderer);
@@ -874,8 +899,8 @@ class LoadSaveMenu {
     UI::Padding newSaveCover_;
     UI::Text fileText_;
     UI::TextBox newSavePath_;
-    const int KEY_SIZE_ = 71;
-    const static int NUM_OF_KEYS_ = 45;
+    const float KEY_SIZE_ = 72.3;
+    const static int NUM_OF_KEYS_ = 50;
     UI::Key keys_ [NUM_OF_KEYS_];
     UI::Button doneButton_;
     UI::Button cancelButton_;
@@ -888,13 +913,13 @@ class LoadSaveMenu {
     buttonPadding_("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
     newButton_(5, 5, 100, 35, "New"),
     loadButton_(110, 5, 100, 35, "Load"),
-    saveButton_(215, 5, 100, 35, "Save"),
-    saveAsButton_(320, 5, 100, 35, "SaveAs"),
-    backButton_(425, 5, 100, 35, "Cancel"),
+    saveButton_(5, 5, 100, 35, "Save"),
+    saveAsButton_(110, 5, 100, 35, "SaveAs"),
+    backButton_(215, 5, 100, 35, "Cancel"),
     deleteButton_(695, 5, 100, 35, "Delete"),
     newSaveCover_("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
     fileText_("fonts/consola.ttf", 16, 15, 15, "Filename :"),
-    newSavePath_(110, 15, 670, 21),
+    newSavePath_(110, 16, 674, 21),
     keys_{UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '1', "1"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '2', "2"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '3', "3"),
@@ -939,6 +964,11 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '+', "+"), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '=', "="), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '_', "_"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '@', "@"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '#', "#"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '%', "%"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '&', "&"),
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '^', "^"), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de")},
     doneButton_(15, 430, 100, 35, "Done"),
     cancelButton_(120, 430, 100, 35, "Cancel"),
@@ -947,7 +977,7 @@ class LoadSaveMenu {
       editor_ = editor;
       // position keys_
       for (int i = 0; i < NUM_OF_KEYS_; i++) {
-        keys_[i].setXY(15 + (KEY_SIZE_ + 5) * (i % 10), 41 + (KEY_SIZE_ + 5) * (i / 10));
+        keys_[i].setXY(16 + (KEY_SIZE_ + 5) * (i % 10), 42 + (KEY_SIZE_ + 5) * (i / 10));
       }
     }
     
@@ -959,7 +989,7 @@ class LoadSaveMenu {
       for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
         // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
-          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4), false);
+          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4));
           experimentPathTexts_.push_back(entryText);
           experimentPaths_.push_back(entry.path().string());
         }
@@ -982,6 +1012,17 @@ class LoadSaveMenu {
 
     // performs load and save menu input and logic returns state to go to next
     states logic (states state) {
+      if (state == LOAD_MENU) {
+        newButton_.setXY(5, 5);
+        loadButton_.setXY(110, 5);
+        saveButton_.setXY(5, -50);
+        saveAsButton_.setXY(110, -50);
+      } else if (state == SAVE_MENU) {
+        newButton_.setXY(5, -50);
+        loadButton_.setXY(110, -50);
+        saveButton_.setXY(5, 5);
+        saveAsButton_.setXY(110, 5);
+      }
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
           return QUIT; // quit
@@ -1095,18 +1136,18 @@ class LoadSaveMenu {
             // done button
             SDL_Rect doneRect = doneButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &doneRect)) {  
+              selectedPathIndex_ = -1;
+              textScroll_ = 55;
+              movePaths();
               bool fileAllreaddyExists = false;
               for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
                 if (experimentPathTexts_[i].getText() == newSavePath_.getText()) {
                   fileAllreaddyExists = true;
                   break;
                 }
-              }
+              }              
               if (fileAllreaddyExists) {
                 if (!areYouSure(newSavePath_.getText() + " allreaddy exists. Overight?")) {
-                  selectedPathIndex_ = -1;
-                  textScroll_ = 55;
-                  movePaths();
                   break;
                 }
               }
@@ -1134,7 +1175,7 @@ class LoadSaveMenu {
         } else if (UI::event.type == SDL_FINGERMOTION) {
           if (!newSaveFile_) {  // disable if popup is open
             // scroll through files
-            if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) > 3) {
+            if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) + abs(UI::event.tfinger.dx * SCREEN_WIDTH) > 5) {
               textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
               if (textScroll_ < 55 + 21 - (int)experimentPathTexts_.size() * 21) {
                 textScroll_ = 55 + 21 - (int)experimentPathTexts_.size() * 21;
@@ -1203,6 +1244,48 @@ class LoadSaveMenu {
     }
 };
 
+class HelpMenu {
+  private:
+
+  public:
+    HelpMenu () {}
+
+    // performs help menu input and logic returns state to go to next
+    states logic () {
+      while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
+        if (UI::event.type == SDL_QUIT) { // if user hit window x button
+          return QUIT; // quit
+        } else if (UI::event.type == SDL_KEYDOWN) { // key presses
+          switch (UI::event.key.keysym.sym) {
+            case SDLK_ESCAPE: // pressed escape, quit
+              return QUIT;
+              break;
+            case SDLK_s: // pressed s, take screenshot
+              static int screenshotNumber;
+              UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+              break;
+          }
+        } else if (UI::event.type == SDL_FINGERDOWN) {
+          // button presses
+          SDL_Point touchLocation;
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        }
+      }
+      return HELP_MENU;
+    }
+
+    void render () {
+      // begin render, clear screen
+      SDL_SetRenderDrawColor(UI::renderer, 139, 147, 175, 255);
+      SDL_RenderClear(UI::renderer);
+      
+      // present render
+      SDL_RenderPresent(UI::renderer);
+    }
+};
+
+
 int main(int argc, char* args[]) {  
   // initialize UI
   if (UI::init()) {
@@ -1220,6 +1303,7 @@ int main(int argc, char* args[]) {
   // create menus
   MainMenu mainMenu(&editor);
   LoadSaveMenu loadSaveMenu(&editor);
+  HelpMenu helpMenu;
 
   // program loop
   bool run = true;
@@ -1244,6 +1328,10 @@ int main(int argc, char* args[]) {
       case SAVE_MENU:
         loadSaveMenu.render();
         state = loadSaveMenu.logic(SAVE_MENU);
+        break;
+      case HELP_MENU:
+        helpMenu.render();
+        state = helpMenu.logic();
         break;
       case PREVIOUS:
         state = previousState;

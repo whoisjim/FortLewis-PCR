@@ -55,7 +55,7 @@ namespace UI {
       // x : upper left of text's screen x position
       // y : upper left of text's screen y position
       // text : the string of charicters to be rendered
-      Text (const char* path, int size, int x, int y, std::string text = "", bool rightSide = false);
+      Text (const char* path, int size, int x, int y, std::string text = "", int horizontalJustification = 1, int verticalJustification = 1);
       Text (const Text&); 
       void setText (std::string text); // sets a new string
       std::string getText (); // get the curent string 
@@ -69,6 +69,8 @@ namespace UI {
       int fontID_;
       int x_, y_;
       bool rightSide_;
+      int horizontalJustification_; 
+      int verticalJustification_;
   };
 
   // for rendering an unscaled image
@@ -193,6 +195,7 @@ namespace UI {
       // ch : the cahricter to add to the textbox '\b' for delete
       // target : the text box to add number to
       Key (int x, int y, int w, int h, char ch, std::string text);
+      Key (int x, int y, int w, int h, char ch, std::string text, int fontSize);
       void render (); // renders this number key
       void press (TextBox* target, bool caps = false); // sends ch to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
@@ -215,6 +218,7 @@ namespace UI {
       // ch : the number to add to the textbox '\b' for delete
       // target : the text box to add number to
       NumberKey (int x, int y, int w, int h, char ch, std::string text);
+      NumberKey (int x, int y, int w, int h, char ch, std::string text, int fontSize);
       void render (); // renders this number key
       void press (TextBox* target); // sends sumber to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
@@ -235,6 +239,7 @@ namespace UI {
       // h : height of the button
       // text : the text on the button
       Button (int x, int y, int w, int h, std::string text);
+      Button (int x, int y, int w, int h, std::string text, int fontSize);
       void render (); // renders this button
       void press (); // nothing ath the momennt
       void setText(std::string text);

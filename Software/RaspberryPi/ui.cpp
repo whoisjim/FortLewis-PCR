@@ -189,7 +189,7 @@ namespace UI {
     return rect;
   }
 
-  Text::Text (const char* path, int size, int x, int y, std::string text, bool rightSide) {
+  Text::Text (const char* path, int size, int x, int y, std::string text, int horizontalJustification, int verticalJustification) {
     bool fontLoaded = false;
     for (unsigned int i = 0; i < fontPaths.size(); i++) {
       if (fontPaths[i] == path + std::to_string(size)) {
@@ -203,7 +203,9 @@ namespace UI {
       fontPaths.push_back(path + std::to_string(size));
       fonts.push_back(TTF_OpenFont(path, size));
     }
-    rightSide_ = rightSide;
+
+    horizontalJustification_ = horizontalJustification;
+    verticalJustification_ = verticalJustification; 
     x_ = x;
     y_ = y;
     texture_ = NULL;
@@ -215,7 +217,8 @@ namespace UI {
     x_ = copy.x_;
     y_ = copy.y_;
     texture_ = NULL;
-    rightSide_ = copy.rightSide_;
+    horizontalJustification_ = copy.horizontalJustification_;
+    verticalJustification_ = copy.verticalJustification_;
     setText(copy.text_);
   }
 
@@ -246,19 +249,23 @@ namespace UI {
       int imgW;
       int imgH;
       SDL_QueryTexture(texture_, NULL, NULL, &imgW, &imgH);
-      if (rightSide_) {
+      if (horizontalJustification_ < 0) {
         destination.x = x_ - imgW;
-        destination.y = y_;
-        destination.w = imgW;
-        destination.h = imgH;
-        SDL_RenderCopy(renderer, texture_, NULL, &destination);
+      } else if (horizontalJustification_ == 0) {
+        destination.x = x_ - imgW / 2;
       } else {
         destination.x = x_;
-        destination.y = y_;
-        destination.w = imgW;
-        destination.h = imgH;
-        SDL_RenderCopy(renderer, texture_, NULL, &destination); 
       }
+      if (verticalJustification_ < 0) {
+        destination.y = y_ - imgH;
+      } else if (verticalJustification_ == 0) {
+        destination.y = y_ - imgH / 2;
+      } else {
+        destination.y = y_;
+      }
+      destination.w = imgW;
+      destination.h = imgH;
+      SDL_RenderCopy(renderer, texture_, NULL, &destination);
     }
   }
   
@@ -675,7 +682,15 @@ namespace UI {
 
   Key::Key (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+    x_ = x;
+    y_ = y;
+    ch_ = ch;
+  }
+
+  Key::Key (int x, int y, int w, int h, char ch, std::string text, int fontSize):
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
+  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -706,15 +721,24 @@ namespace UI {
   }
 
   void Key::setXY (int x, int y) {
+    SDL_Rect rect = padding_.getRect();
     x_ = x;
     y_ = y;
-    text_.setXY(x, y);
+    text_.setXY(x + rect.w / 2, y + rect.h / 2);
     padding_.setXY(x, y);
   }
 
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+    x_ = x;
+    y_ = y;
+    ch_ = ch;
+  }
+
+  NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text, int fontSize):
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
+  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -761,16 +785,24 @@ namespace UI {
     return padding_.getRect();
   }
 
-  void NumberKey::setXY (int x, int y) {
+  void NumberKey::setXY (int x, int y) { 
+    SDL_Rect rect = padding_.getRect();
     x_ = x;
     y_ = y;
-    text_.setXY(x, y);
+    text_.setXY(x + rect.w / 2, y + rect.h / 2);
     padding_.setXY(x, y);
   }
 
   Button::Button (int x, int y, int w, int h, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + 5, y + 5, text) {
+  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+    x_ = x;
+    y_ = y;
+  }
+
+  Button::Button (int x, int y, int w, int h, std::string text, int fontSize):
+  padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
+  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
   }
@@ -793,9 +825,10 @@ namespace UI {
   }
 
   void Button::setXY (int x, int y) {
+    SDL_Rect rect = padding_.getRect();
     x_ = x;
     y_ = y;
-    text_.setXY(x, y);
+    text_.setXY(x + rect.w / 2, y + rect.h / 2);
     padding_.setXY(x, y);
   }
 }
