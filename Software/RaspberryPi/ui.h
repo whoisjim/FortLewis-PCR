@@ -200,6 +200,8 @@ namespace UI {
       void press (TextBox* target, bool caps = false); // sends ch to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
       void setXY (int x, int y); // sets the key location
+      void setText(std::string); // set key text
+      void setCh(char); // set key char to send 
     private:
       int x_, y_;
       char ch_;
@@ -223,6 +225,8 @@ namespace UI {
       void press (TextBox* target); // sends sumber to pointed text box
       SDL_Rect getRect (); // get SDL_Rect based on location and size
       void setXY (int x, int y); // sets the key location
+      void setText(std::string); // set key text
+      void setCh(char); // set key char to send
     private:
       int x_, y_;
       char ch_;

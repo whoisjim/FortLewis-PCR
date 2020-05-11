@@ -878,10 +878,10 @@ class LoadSaveMenu {
   private:
     ExperimentEditor* editor_; // the editor to enteract with
     UI::Padding pathSelection_; // padding behind the selected path
-    int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection
-    std::vector<std::string> experimentPaths_; // file paths 
+    int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection 
     std::string savePath_ = "/home/pi/experiments/"; // folder to look in for files
     float textScroll_ = 55; // vertical position of experiment paths
+    int maxTextScroll_ = 55;
     int touchTimeStart_ = 0; // for keeping track of taps
     
     // UI elements
@@ -890,20 +890,17 @@ class LoadSaveMenu {
     UI::Button newButton_;
     UI::Button loadButton_;
     UI::Button saveButton_;
-    UI::Button saveAsButton_;
+    UI::Button keybordButton_;
     UI::Button backButton_;
     UI::Button deleteButton_;
+    UI::Text fileText_; 
+    UI::TextBox newSavePath_;
 
     // save new file popup UI elements
-    bool newSaveFile_ = false; // is the save new file popup open
-    UI::Padding newSaveCover_;
-    UI::Text fileText_;
-    UI::TextBox newSavePath_;
+    bool keybord_ = false; // is the save new file popup open
     const float KEY_SIZE_ = 72.3;
     const static int NUM_OF_KEYS_ = 50;
     UI::Key keys_ [NUM_OF_KEYS_];
-    UI::Button doneButton_;
-    UI::Button cancelButton_;
     UI::Button capsButton_;
     bool caps_ = false;
 
@@ -911,15 +908,14 @@ class LoadSaveMenu {
     LoadSaveMenu (ExperimentEditor* editor) :
     pathSelection_("img/padding/S_Blue.png", 2, -2, 8, 804, 20),
     buttonPadding_("img/padding/R_Grey_2.png", 5, -5, -5, 810, 51),
-    newButton_(5, 5, 100, 35, "New"),
-    loadButton_(110, 5, 100, 35, "Load"),
-    saveButton_(5, 5, 100, 35, "Save"),
-    saveAsButton_(110, 5, 100, 35, "SaveAs"),
+    newButton_(0, 0, 100, 35, "New"),
+    loadButton_(0, 0, 100, 35, "Load"),
+    saveButton_(0, 0, 100, 35, "Save"),
+    keybordButton_(0, 0, 100, 35, "Keybord"),
     backButton_(215, 5, 100, 35, "Cancel"),
     deleteButton_(695, 5, 100, 35, "Delete"),
-    newSaveCover_("img/padding/R_Grey_2.png", 5, 10, 10, 780, 460),
-    fileText_("fonts/consola.ttf", 16, 15, 15, "Filename :"),
-    newSavePath_(110, 16, 674, 21),
+    fileText_("fonts/consola.ttf", 16, 0, 0, "Filename :"),
+    newSavePath_(0, 0, 695, 21),
     keys_{UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '1', "1"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '2', "2"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '3', "3"),
@@ -970,28 +966,24 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '&', "&"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '^', "^"), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de")},
-    doneButton_(15, 430, 100, 35, "Done"),
-    cancelButton_(120, 430, 100, 35, "Cancel"),
-    capsButton_(225, 430, 100, 35, "Caps") {
+    capsButton_(320, 5, 100, 35, "Caps") {
       updatePaths();
       editor_ = editor;
       // position keys_
       for (int i = 0; i < NUM_OF_KEYS_; i++) {
-        keys_[i].setXY(16 + (KEY_SIZE_ + 5) * (i % 10), 42 + (KEY_SIZE_ + 5) * (i / 10));
+        keys_[i].setXY(16 + (KEY_SIZE_ + 5) * (i % 10), 83 + (KEY_SIZE_ + 5) * (i / 10));
       }
     }
     
     // checks for new files and updates the list of experiment files
     void updatePaths () {
       experimentPathTexts_.clear();
-      experimentPaths_.clear();
       // iterate through all files including subdirectories
       for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
         // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
           UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4));
           experimentPathTexts_.push_back(entryText);
-          experimentPaths_.push_back(entry.path().string());
         }
       }
       movePaths();
@@ -1016,12 +1008,20 @@ class LoadSaveMenu {
         newButton_.setXY(5, 5);
         loadButton_.setXY(110, 5);
         saveButton_.setXY(5, -50);
-        saveAsButton_.setXY(110, -50);
+        keybordButton_.setXY(110, -50);
+        buttonPadding_.setWH(810, 51);
+        fileText_.setXY(5, -50);
+        newSavePath_.setXY(100, -50);
+        maxTextScroll_ = 55;
       } else if (state == SAVE_MENU) {
         newButton_.setXY(5, -50);
         loadButton_.setXY(110, -50);
         saveButton_.setXY(5, 5);
-        saveAsButton_.setXY(110, 5);
+        keybordButton_.setXY(110, 5);
+        buttonPadding_.setWH(810, 77);
+        fileText_.setXY(5, 48);
+        newSavePath_.setXY(100, 45);
+        maxTextScroll_ = 80;
       }
       while (SDL_PollEvent(&UI::event) != 0) { // loop through all inputs
         if (UI::event.type == SDL_QUIT) { // if user hit window x button
@@ -1041,103 +1041,51 @@ class LoadSaveMenu {
           SDL_Point touchLocation;
           touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
           touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          if (!newSaveFile_) { // disable if popup is open
-            touchTimeStart_ = UI::event.tfinger.timestamp;
-            // new button
-            SDL_Rect newButtonRect = newButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+
+          touchTimeStart_ = UI::event.tfinger.timestamp;
+          // new button
+          SDL_Rect newButtonRect = newButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
+            if (!editor_->saved()) {
+              if (!areYouSure("Creating a new file will delete the curent UNSAVED experiment.")) {
+                selectedPathIndex_ = -1;
+                textScroll_ = maxTextScroll_;
+                movePaths();
+                break;
+              }
+            }
+            editor_->load("/home/pi/Untitled.exp");
+            selectedPathIndex_ = -1;
+            textScroll_ = maxTextScroll_;
+            movePaths();
+            newSavePath_.setText("");
+            return EDITOR_MENU;
+          }
+          // load button
+          SDL_Rect loadButtonRect = loadButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
+            if (selectedPathIndex_ != -1) { 
               if (!editor_->saved()) {
-                if (!areYouSure("Creating a new file will delete the curent UNSAVED experiment.")) {
+                if (!areYouSure("Loading will delete the curent UNSAVED experiment.")) {
                   selectedPathIndex_ = -1;
-                  textScroll_ = 55;
+                  textScroll_ = maxTextScroll_;
                   movePaths();
                   break;
                 }
               }
-              editor_->load("/home/pi/Untitled.exp");
+              editor_->load(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp");
               selectedPathIndex_ = -1;
-              textScroll_ = 55;
+              textScroll_ = maxTextScroll_;
               movePaths();
-              newSavePath_.setText("");
-              caps_ = false;
               return EDITOR_MENU;
             }
-            // load button
-            SDL_Rect loadButtonRect = loadButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &loadButtonRect)) {
-              if (selectedPathIndex_ != -1) { 
-                if (!editor_->saved()) {
-                  if (!areYouSure("Loading will delete the curent UNSAVED experiment.")) {
-                    selectedPathIndex_ = -1;
-                    textScroll_ = 55;
-                    movePaths();
-                    break;
-                  }
-                }
-                editor_->load(experimentPaths_[selectedPathIndex_]);
-                selectedPathIndex_ = -1;
-                textScroll_ = 55;
-                movePaths();
-                newSavePath_.setText("");
-                caps_ = false;
-                return EDITOR_MENU;
-              }
-            }
-            // save button
-            SDL_Rect saveButtonRect = saveButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
-              if (selectedPathIndex_ != -1) { 
-                if (!areYouSure(experimentPathTexts_[selectedPathIndex_].getText() + " allreaddy exists. Overight?")) {
-                  selectedPathIndex_ = -1;
-                  textScroll_ = 55;
-                  movePaths();
-                  break;
-                }
-                editor_->save(experimentPaths_[selectedPathIndex_]);
-                newSavePath_.setText("");
-                caps_ = false;
-                return PREVIOUS;
-              }
-            }
-            // save as button
-            SDL_Rect saveAsButtonRect = saveAsButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &saveAsButtonRect)) {
-              newSavePath_.setText("");
-              caps_ = false;
-              newSaveFile_ = true;
-            }
-            // delete button
-            SDL_Rect deleteButtonRect = deleteButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
-              if (selectedPathIndex_ != -1 && areYouSure("Are you sure?")) {
-                remove(experimentPaths_[selectedPathIndex_].c_str());
-                selectedPathIndex_ = -1;
-                updatePaths();
-              } 
-            }
-            // back button
-            SDL_Rect backButtonRect = backButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &backButtonRect)) {
+          }
+          // save button
+          SDL_Rect saveButtonRect = saveButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
+            if (newSavePath_.getText().size() != 0) {
               selectedPathIndex_ = -1;
-              textScroll_ = 55;
-              movePaths();
-              newSavePath_.setText("");
-              caps_ = false;
-              return PREVIOUS;
-            }
-          } else { // popup is open
-            // key presses
-            for (int i = 0; i < NUM_OF_KEYS_; i++) {
-              SDL_Rect keyRect = keys_[i].getRect();
-              if (SDL_PointInRect(&touchLocation, &keyRect)) {
-                keys_[i].press(&newSavePath_, caps_);
-              } 
-            }
-            // done button
-            SDL_Rect doneRect = doneButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &doneRect)) {  
-              selectedPathIndex_ = -1;
-              textScroll_ = 55;
+              textScroll_ = maxTextScroll_;
               movePaths();
               bool fileAllreaddyExists = false;
               for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
@@ -1152,15 +1100,66 @@ class LoadSaveMenu {
                 }
               }
               editor_->save(savePath_ + newSavePath_.getText() + ".exp"); 
-              newSaveFile_ = false;
+              keybord_ = false;
+              newSavePath_.deselect();
               updatePaths();
               return PREVIOUS;
             }
-            // cancel button
-            SDL_Rect cancelRect = cancelButton_.getRect();
-            if (SDL_PointInRect(&touchLocation, &cancelRect)) {  
-              newSaveFile_ = false;
+          }
+          // keybord button
+          SDL_Rect keybordButtonRect = keybordButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &keybordButtonRect)) {
+            if (keybord_) {
+              keybord_ = false;
+              newSavePath_.deselect();
+            } else {
+              caps_ = false;
+              keybord_ = true;
+              newSavePath_.select();
+            }
+          }
+
+          // textBox button
+          SDL_Rect textRect = newSavePath_.getRect();
+          if (SDL_PointInRect(&touchLocation, &textRect) && state == SAVE_MENU) {
+            if (keybord_) {
+              keybord_ = false;
+              newSavePath_.deselect();
+            } else {
+              caps_ = false;
+              keybord_ = true;
+              newSavePath_.select();
+            }
+          }
+
+          // delete button
+          SDL_Rect deleteButtonRect = deleteButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
+            if (selectedPathIndex_ != -1 && areYouSure("Are you sure?")) {
+              remove((savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp").c_str());
+              selectedPathIndex_ = -1;
               updatePaths();
+            } 
+          }
+          // back button
+          SDL_Rect backButtonRect = backButton_.getRect();
+          if (SDL_PointInRect(&touchLocation, &backButtonRect)) {
+            selectedPathIndex_ = -1;
+            textScroll_ = maxTextScroll_;
+            movePaths();
+            newSavePath_.setText("");
+            keybord_ = false;
+            newSavePath_.deselect();
+            caps_ = false;
+            return PREVIOUS;
+          }          
+          if (keybord_) { // popup is open
+            // key presses
+            for (int i = 0; i < NUM_OF_KEYS_; i++) {
+              SDL_Rect keyRect = keys_[i].getRect();
+              if (SDL_PointInRect(&touchLocation, &keyRect)) {
+                keys_[i].press(&newSavePath_, caps_);
+              } 
             }
             // caps button
             SDL_Rect capsRect = capsButton_.getRect();
@@ -1173,29 +1172,33 @@ class LoadSaveMenu {
             }
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
-          if (!newSaveFile_) {  // disable if popup is open
+          if (!keybord_) {  // disable if popup is open
             // scroll through files
             if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) + abs(UI::event.tfinger.dx * SCREEN_WIDTH) > 5) {
               textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
-              if (textScroll_ < 55 + 21 - (int)experimentPathTexts_.size() * 21) {
-                textScroll_ = 55 + 21 - (int)experimentPathTexts_.size() * 21;
+              if (textScroll_ < maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21) {
+                textScroll_ = maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21;
               }
-              if (textScroll_ > 55) {
-                textScroll_ = 55;
+              if (textScroll_ > maxTextScroll_) {
+                textScroll_ = maxTextScroll_;
               }
               movePaths();
             }
           }
         } else if (UI::event.type == SDL_FINGERUP) {
-         if (!newSaveFile_) { // disable if popup is open
+         if (!keybord_) { // disable if popup is open
             SDL_Point touchLocation;
             touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
             touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
             // select path
-            if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > 50) {
+            if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > maxTextScroll_) {
               selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
               if (selectedPathIndex_ >= (int)experimentPathTexts_.size() || selectedPathIndex_ < 0) {
                 selectedPathIndex_ = -1;
+                newSavePath_.setText("");
+              } else {
+              
+                newSavePath_.setText(experimentPathTexts_[selectedPathIndex_].getText());
               }
               moveSelection();
             }
@@ -1210,32 +1213,30 @@ class LoadSaveMenu {
       SDL_SetRenderDrawColor(UI::renderer, 109, 117, 141, 255);
       SDL_RenderClear(UI::renderer);
 
-      if (selectedPathIndex_ != -1) {
-        pathSelection_.render();
-      }
-
-      for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
-        experimentPathTexts_[i].render();
+      if (!keybord_) {
+        if (selectedPathIndex_ != -1) {
+          pathSelection_.render();
+        }
+        for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
+          experimentPathTexts_[i].render();
+        }
       }
 
       buttonPadding_.render();
       newButton_.render();
       loadButton_.render();
       saveButton_.render();
-      saveAsButton_.render();
+      keybordButton_.render();
       backButton_.render();
       deleteButton_.render();
+      fileText_.render();
+      newSavePath_.render();
 
       // draw new save file popup
-      if (newSaveFile_) {
-        newSaveCover_.render();
-        fileText_.render();
-        newSavePath_.render();
+      if (keybord_) {
         for (int i = 0; i < NUM_OF_KEYS_; i++) {
           keys_[i].render();
         }
-        doneButton_.render();
-        cancelButton_.render();
         capsButton_.render();
       }
 

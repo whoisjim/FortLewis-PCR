@@ -606,9 +606,7 @@ namespace UI {
   }
 
   void CycleArray::load (std::string path) {
-    std::cout << "load file " << path << std::endl;
     clear();
-
     std::ifstream inFile;
     inFile.open(path);
     int i = -1;
@@ -642,7 +640,6 @@ namespace UI {
   }
 
   void CycleArray::save (std::string path) {
-    std::cout << "save file " << path << std::endl;
     std::ofstream outFile;
     outFile.open(path);
     for(unsigned int i = 0; i < cycles_.size(); i++) {
@@ -720,6 +717,14 @@ namespace UI {
     return padding_.getRect();
   }
 
+  void Key::setText(std::string text) {
+    text_.setText(text);
+  }
+
+  void Key::setCh(char ch) {
+    ch_ = ch;
+  }
+
   void Key::setXY (int x, int y) {
     SDL_Rect rect = padding_.getRect();
     x_ = x;
@@ -783,6 +788,14 @@ namespace UI {
 
   SDL_Rect NumberKey::getRect () {
     return padding_.getRect();
+  }
+
+  void NumberKey::setText(std::string text) {
+    text_.setText(text);
+  }
+
+  void NumberKey::setCh(char ch) {
+    ch_ = ch;
   }
 
   void NumberKey::setXY (int x, int y) { 
