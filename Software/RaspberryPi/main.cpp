@@ -767,16 +767,38 @@ class MainMenu {
     ExperimentEditor* editor_; // the editor to enteract with
     
     // UI elements
-    UI::Text mainText_;
+    UI::Image letters_[7];
+    float letterPos_[7] = {20, 21.05, 24.1, 29.15, 34.67, 38.22, 39.77};
+    float letterVel_[7] = {0, 0.1, 0.2, 0.3, 0.23, 0.13, 0.03};
     UI::Button newButton_;
     UI::Button loadButton_;
 
   public:
     MainMenu (ExperimentEditor* editor) :
-    mainText_("fonts/consola.ttf", 100, 10, 10, "FLC-PCR Main Menu"),
+    letters_{UI::Image("img/letters/F.png", 0, 0),
+             UI::Image("img/letters/L.png", 0, 0),
+             UI::Image("img/letters/C.png", 0, 0),
+             UI::Image("img/letters/-.png", 0, 0),
+             UI::Image("img/letters/P.png", 0, 0),
+             UI::Image("img/letters/C.png", 0, 0),
+             UI::Image("img/letters/R.png", 0, 0)},
     newButton_(10, 120, 780, 100, "New Experiment"),
     loadButton_(10, 230, 780, 100, "Load Experiment") {
       editor_ = editor;
+      moveLetters();
+    }
+
+    void moveLetters() {
+      for (int i = 0; i < 7; i++) {
+        if (letterPos_[i] < 30) {
+          letterVel_[i] += 0.005;  
+        } else {
+          letterVel_[i] -= 0.005;   
+        }
+
+        letterPos_[i] += letterVel_[i];
+        letters_[i].setXY(20 + i * 40, letterPos_[i]);
+      }
     }
 
     // performs main menu input and logic returns state to go to next
@@ -814,6 +836,7 @@ class MainMenu {
           }
         }
       }
+      moveLetters();
       return MAIN_MENU;
     }
 
@@ -822,7 +845,9 @@ class MainMenu {
       SDL_SetRenderDrawColor(UI::renderer, 139, 147, 175, 255);
       SDL_RenderClear(UI::renderer);
       
-      mainText_.render();
+      for (int i = 0; i < 7; i++) {
+        letters_[i].render();
+      }
       newButton_.render();
       loadButton_.render();
 
