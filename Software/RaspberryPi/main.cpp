@@ -768,8 +768,6 @@ class MainMenu {
     
     // UI elements
     UI::Image letters_[7];
-    float letterPos_[7] = {20, 21.05, 24.1, 29.15, 34.67, 38.22, 39.77};
-    float letterVel_[7] = {0, 0.1, 0.2, 0.3, 0.23, 0.13, 0.03};
     UI::Button newButton_;
     UI::Button loadButton_;
 
@@ -790,14 +788,9 @@ class MainMenu {
 
     void moveLetters() {
       for (int i = 0; i < 7; i++) {
-        if (letterPos_[i] < 30) {
-          letterVel_[i] += 0.005;  
-        } else {
-          letterVel_[i] -= 0.005;   
-        }
-
-        letterPos_[i] += letterVel_[i];
-        letters_[i].setXY(20 + i * 40, letterPos_[i]);
+        timeval time;
+        gettimeofday(&time, NULL);
+        letters_[i].setXY(20 + i * 40, 10 * cos((time.tv_sec + time.tv_usec * 1e-6) * 4 - i) + 30);
       }
     }
 
