@@ -11,6 +11,7 @@
 - [ ] add folders to save / load
 - [ ] add external directories to save / load
 - [ ] polish save and load menu
+- [ ] add ~!@#$%^&* to keyford
 - [ ] polish save keybord
 - [ ] polish main menu
 - [ ] add error checking
