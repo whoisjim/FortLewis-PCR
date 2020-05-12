@@ -899,7 +899,7 @@ class LoadSaveMenu {
     // save new file popup UI elements
     bool keybord_ = false; // is the save new file popup open
     const float KEY_SIZE_ = 72.3;
-    const static int NUM_OF_KEYS_ = 50;
+    const static int NUM_OF_KEYS_ = 41;
     UI::Key keys_ [NUM_OF_KEYS_];
     UI::Button capsButton_;
     bool caps_ = false;
@@ -955,23 +955,41 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'm', "m"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ',', ","),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '.', "."), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ' ', ""), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '-', "-"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '+', "+"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '=', "="), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '_', "_"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '@', "@"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '#', "#"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '%', "%"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '&', "&"),
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '^', "^"), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de")},
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ' ', " ")},
     capsButton_(320, 5, 100, 35, "Caps") {
       updatePaths();
       editor_ = editor;
       // position keys_
       for (int i = 0; i < NUM_OF_KEYS_; i++) {
         keys_[i].setXY(16 + (KEY_SIZE_ + 5) * (i % 10), 83 + (KEY_SIZE_ + 5) * (i / 10));
+      }
+    }
+
+    void lowerCase () { // set all keys to lowercase
+      char chLow[NUM_OF_KEYS_ - 2] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.'};
+      caps_ = false;
+      for (int i = 0; i < NUM_OF_KEYS_ - 2; i++) {
+        keys_[i].setCh(chLow[i]);
+        keys_[i].setText(std::string(1, chLow[i]));
+      }
+    }
+
+    void toggleCaps () { // toggle the case of all keys
+      char chLow[NUM_OF_KEYS_ - 2] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.'};
+      char chUpr[NUM_OF_KEYS_ - 2] = {'!', '@', '#', '?', '%', '&', '_', '+', '-', '=', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>'};
+      if (caps_) {
+        caps_ = false;
+        for (int i = 0; i < NUM_OF_KEYS_ - 2; i++) {
+          keys_[i].setCh(chLow[i]);
+          keys_[i].setText(std::string(1, chLow[i]));
+        }
+      } else {
+        caps_ = true;
+        for (int i = 0; i < NUM_OF_KEYS_ - 2; i++) {
+          keys_[i].setCh(chUpr[i]);
+          keys_[i].setText(std::string(1, chUpr[i]));
+        }
       }
     }
     
@@ -1056,8 +1074,7 @@ class LoadSaveMenu {
             }
             editor_->load("/home/pi/Untitled.exp");
             selectedPathIndex_ = -1;
-            textScroll_ = maxTextScroll_;
-            movePaths();
+            textScroll_ = 999;
             newSavePath_.setText("");
             return EDITOR_MENU;
           }
@@ -1075,8 +1092,7 @@ class LoadSaveMenu {
               }
               editor_->load(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp");
               selectedPathIndex_ = -1;
-              textScroll_ = maxTextScroll_;
-              movePaths();
+              textScroll_ = 999;
               return EDITOR_MENU;
             }
           }
@@ -1085,8 +1101,7 @@ class LoadSaveMenu {
           if (SDL_PointInRect(&touchLocation, &saveButtonRect)) {
             if (newSavePath_.getText().size() != 0) {
               selectedPathIndex_ = -1;
-              textScroll_ = maxTextScroll_;
-              movePaths();
+              textScroll_ = 999;
               bool fileAllreaddyExists = false;
               for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
                 if (experimentPathTexts_[i].getText() == newSavePath_.getText()) {
@@ -1103,6 +1118,7 @@ class LoadSaveMenu {
               keybord_ = false;
               newSavePath_.deselect();
               updatePaths();
+              lowerCase();
               return PREVIOUS;
             }
           }
@@ -1113,7 +1129,7 @@ class LoadSaveMenu {
               keybord_ = false;
               newSavePath_.deselect();
             } else {
-              caps_ = false;
+              lowerCase();
               keybord_ = true;
               newSavePath_.select();
             }
@@ -1126,7 +1142,7 @@ class LoadSaveMenu {
               keybord_ = false;
               newSavePath_.deselect();
             } else {
-              caps_ = false;
+              lowerCase();
               keybord_ = true;
               newSavePath_.select();
             }
@@ -1135,7 +1151,7 @@ class LoadSaveMenu {
           // delete button
           SDL_Rect deleteButtonRect = deleteButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
-            if (selectedPathIndex_ != -1 && areYouSure("Are you sure?")) {
+            if (selectedPathIndex_ != -1 && areYouSure("Are you sure you want to delete " + newSavePath_.getText() + "?")) {
               remove((savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp").c_str());
               selectedPathIndex_ = -1;
               updatePaths();
@@ -1145,12 +1161,11 @@ class LoadSaveMenu {
           SDL_Rect backButtonRect = backButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &backButtonRect)) {
             selectedPathIndex_ = -1;
-            textScroll_ = maxTextScroll_;
-            movePaths();
+            textScroll_ = 999;
             newSavePath_.setText("");
             keybord_ = false;
             newSavePath_.deselect();
-            caps_ = false;
+            lowerCase();
             return PREVIOUS;
           }          
           if (keybord_) { // popup is open
@@ -1158,17 +1173,14 @@ class LoadSaveMenu {
             for (int i = 0; i < NUM_OF_KEYS_; i++) {
               SDL_Rect keyRect = keys_[i].getRect();
               if (SDL_PointInRect(&touchLocation, &keyRect)) {
-                keys_[i].press(&newSavePath_, caps_);
+                keys_[i].press(&newSavePath_);
+                selectedPathIndex_ = -1;
               } 
             }
             // caps button
             SDL_Rect capsRect = capsButton_.getRect();
             if (SDL_PointInRect(&touchLocation, &capsRect)) {  
-              if (caps_) {
-                caps_ = false;
-              } else {
-                caps_ = true;
-              }
+              toggleCaps();
             }
           }
         } else if (UI::event.type == SDL_FINGERMOTION) {
@@ -1176,13 +1188,6 @@ class LoadSaveMenu {
             // scroll through files
             if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) + abs(UI::event.tfinger.dx * SCREEN_WIDTH) > 5) {
               textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
-              if (textScroll_ < maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21) {
-                textScroll_ = maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21;
-              }
-              if (textScroll_ > maxTextScroll_) {
-                textScroll_ = maxTextScroll_;
-              }
-              movePaths();
             }
           }
         } else if (UI::event.type == SDL_FINGERUP) {
@@ -1205,6 +1210,14 @@ class LoadSaveMenu {
           } 
         }
       }
+
+      if (textScroll_ < maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21) {
+        textScroll_ = maxTextScroll_ + 21 - (int)experimentPathTexts_.size() * 21;
+      }
+      if (textScroll_ > maxTextScroll_) {
+        textScroll_ = maxTextScroll_;
+      }
+      movePaths();
       return state;
     }
 
@@ -1315,24 +1328,24 @@ int main(int argc, char* args[]) {
         run = false;
         break;
       case MAIN_MENU:
-        mainMenu.render();
         state = mainMenu.logic();
+        mainMenu.render();
         break;
       case EDITOR_MENU:
-        editor.render();
         state = editor.logic();
+        editor.render();
         break;
       case LOAD_MENU:
-        loadSaveMenu.render();
         state = loadSaveMenu.logic(LOAD_MENU);
+        loadSaveMenu.render();
         break;
       case SAVE_MENU:
-        loadSaveMenu.render();
         state = loadSaveMenu.logic(SAVE_MENU);
+        loadSaveMenu.render();
         break;
       case HELP_MENU:
-        helpMenu.render();
         state = helpMenu.logic();
+        helpMenu.render();
         break;
       case PREVIOUS:
         state = previousState;
