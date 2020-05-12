@@ -1374,8 +1374,7 @@ int main(int argc, char* args[]) {
   }
   
   // clean up
-  SDL_DestroyWindow(UI::window);
-  SDL_Quit();
+  UI::quit();
 
   return 0;
 }

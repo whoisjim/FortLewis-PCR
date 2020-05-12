@@ -53,6 +53,23 @@ namespace UI {
     h_ = h;
   }
 
+  void quit() {
+    for (unsigned int i = 0; i < textures.size(); i++) {
+      SDL_DestroyTexture(textures[i]);
+    }
+    texturePaths.clear();
+    textures.clear();
+
+    for (unsigned int i = 0; i < fonts.size(); i++) {
+      TTF_CloseFont(fonts[i]);
+    }
+    fontPaths.clear();
+    fonts.clear();
+
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+  }
+
   void Padding::setTexture (const char* path, int border) {
     border_ = border;
     bool textureLoaded = false;

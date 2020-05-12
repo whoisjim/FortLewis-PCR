@@ -22,9 +22,10 @@ namespace UI {
   extern std::vector<std::string> fontPaths; // contans the path and fontsize of each loaded font
   extern std::vector<TTF_Font*> fonts; // contains each loaded font
 
-  int init(); // initializes sdls
+  int init(); // initializes sdl
   bool takeScreenShot(std::string path);
-  
+  void quit();
+
   // for drawing a rectangle based on image file.
   // streaches center and edges while leaving corners at the initial aspect ratio.
   class Padding {
