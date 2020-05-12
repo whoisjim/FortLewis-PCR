@@ -368,7 +368,7 @@ namespace UI {
  
   TextBox::TextBox (int x, int y, int w, int h, std::string text) :
   padding_("img/padding/S_Grey_3.png", 2, x, y, w, h),
-  text_("fonts/consola.ttf", h, x + 2, y + 2, text) {
+  text_("fonts/Inconsolata-Medium.ttf", h, x + 2, y, text) {
     x_ = x;
     y_ = y;
     w_ = w;
@@ -400,7 +400,7 @@ namespace UI {
     x_ = x;
     y_ = y;
     padding_.setXY(x, y);
-    text_.setXY(x + 2, y + 2);
+    text_.setXY(x + 2, y);
   }
 
   SDL_Rect TextBox::getRect () {
@@ -422,8 +422,8 @@ namespace UI {
   durationImage_("img/Clock.png", x + 5, y + 26),
   temperature_(x + 26, y + 5, 52, 16, "0"),
   duration_(x + 26, y + 26, 52, 16, "0"),
-  c_("fonts/consola.ttf", 16, x + 79, y + 5, "\xB0" + std::string(1, 'C')),
-  s_("fonts/consola.ttf", 16, x + 84, y + 26, "S") {
+  c_("fonts/Inconsolata-Medium.ttf", 16, x + 79, y + 5, "\xB0" + std::string(1, 'C')),
+  s_("fonts/Inconsolata-Medium.ttf", 16, x + 84, y + 26, "S") {
     x_ = x;
     y_ = y;
   }
@@ -679,7 +679,7 @@ namespace UI {
 
   Key::Key (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -687,7 +687,7 @@ namespace UI {
 
   Key::Key (int x, int y, int w, int h, char ch, std::string text, int fontSize):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -735,7 +735,7 @@ namespace UI {
 
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -743,7 +743,7 @@ namespace UI {
 
   NumberKey::NumberKey (int x, int y, int w, int h, char ch, std::string text, int fontSize):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
     ch_ = ch;
@@ -808,14 +808,14 @@ namespace UI {
 
   Button::Button (int x, int y, int w, int h, std::string text):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", h - 10, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
   }
 
   Button::Button (int x, int y, int w, int h, std::string text, int fontSize):
   padding_("img/padding/R_Grey_1.png", 5, x, y, w, h),
-  text_("fonts/consola.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
+  text_("fonts/Inconsolata-Medium.ttf", fontSize, x + w / 2, y + h / 2, text, 0, 0) {
     x_ = x;
     y_ = y;
   }

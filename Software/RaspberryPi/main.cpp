@@ -22,7 +22,7 @@ enum states {QUIT, MAIN_MENU, EDITOR_MENU, LOAD_MENU, SAVE_MENU, HELP_MENU, PREV
 // displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed
 bool areYouSure (std::string prompt) {
   UI::Padding promptPadding("img/padding/R_Grey_2.png", 5, 100, 100, 600, 280);
-  UI::Text promptText("fonts/consola.ttf", 16, 110, 110, prompt);
+  UI::Text promptText("fonts/Inconsolata-Medium.ttf", 16, 110, 110, prompt);
   UI::Button okButton(105, 324, 292, 50, "Ok");
   UI::Button cancelButton(402, 324, 292, 50, "Cancel");
 
@@ -130,28 +130,28 @@ class ExperimentEditor {
          UI::NumberKey(720, 238, 75, 75, '3', "3"),
          UI::NumberKey(560, 318, 75, 75, '0', "0"),
          UI::NumberKey(640, 318, 75, 75, '.', "."),
-         UI::NumberKey(720, 318, 75, 75, '\b', "de")},
+         UI::NumberKey(720, 318, 75, 75, '\b', "")},
     buttonCover_("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
     recycleBin_("img/Recycle.png", 616, 176),
     startStopButton_(665, 5, 130, 68, "Start", 40),
     loadButton_(560, 398, 75, 50, "Load", 30),
     saveButton_(640, 398, 75, 50, "Save", 30),
     helpButton_(720, 398, 75, 50, "Help", 30),
-    dragToAdd_("fonts/consola.ttf", 16, 560, 5, "Drag to Add"),
+    dragToAdd_("fonts/Inconsolata-Medium.ttf", 16, 560, 5, "Drag to Add"),
     infoBarPadding_("img/padding/R_Grey_1.png", 5, -10, 453, 820, 36),
     statusIndicator_("img/Red_Light.png", 5, 459), 
     progressBar_Padding_("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
     progressBar_("img/padding/S_Red.png", 2, 26, 459, 0, 16),
-    targetTemperature_("fonts/consola.ttf", 16, 100, 459, "Idle"),
-    etaText_("fonts/consola.ttf", 16, 200, 459, "ETA"),
-    saveFileText_("fonts/consola.ttf", 16, 795, 459, "", -1) {
+    targetTemperature_("fonts/Inconsolata-Medium.ttf", 16, 100, 459, "Idle"),
+    etaText_("fonts/Inconsolata-Medium.ttf", 16, 200, 459, "ETA"),
+    saveFileText_("fonts/Inconsolata-Medium.ttf", 16, 795, 459, "", -1) {
       openSerial();
     }
 
     // displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed still updates experiment
     bool areYouSureUpdate (std::string prompt) {
       UI::Padding promptPadding("img/padding/R_Grey_2.png", 5, 100, 100, 600, 280);
-      UI::Text promptText("fonts/consola.ttf", 16, 110, 110, prompt);
+      UI::Text promptText("fonts/Inconsolata-Medium.ttf", 16, 110, 110, prompt);
       UI::Button okButton(105, 324, 292, 50, "Ok");
       UI::Button cancelButton(402, 324, 292, 50, "Cancel");
 
@@ -914,7 +914,7 @@ class LoadSaveMenu {
     keybordButton_(0, 0, 100, 35, "Keybord"),
     backButton_(215, 5, 100, 35, "Cancel"),
     deleteButton_(695, 5, 100, 35, "Delete"),
-    fileText_("fonts/consola.ttf", 16, 0, 0, "Filename :"),
+    fileText_("fonts/Inconsolata-Medium.ttf", 16, 0, 0, "Filename :"),
     newSavePath_(0, 0, 695, 21),
     keys_{UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '1', "1"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '2', "2"),
@@ -955,7 +955,7 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, 'm', "m"),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ',', ","),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '.', "."), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', "de"), 
+         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', ""), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ' ', " ")},
     capsButton_(320, 5, 100, 35, "Caps") {
       updatePaths();
@@ -1000,7 +1000,7 @@ class LoadSaveMenu {
       for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
         // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
-          UI::Text entryText("fonts/consola.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4));
+          UI::Text entryText("fonts/Inconsolata-Medium.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4));
           experimentPathTexts_.push_back(entryText);
         }
       }
