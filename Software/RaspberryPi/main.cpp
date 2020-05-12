@@ -135,7 +135,7 @@ class ExperimentEditor {
     backspace_("img/Backspace.png", 729, 334),
     buttonCover_("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
     recycleBin_("img/Recycle.png", 616, 176),
-    startStopButton_(665, 5, 130, 68, "Start", 40),
+    startStopButton_(665, 5, 130, 68, "Start", 45),
     loadButton_(560, 398, 75, 50, "Load", 30),
     saveButton_(640, 398, 75, 50, "Save", 30),
     helpButton_(720, 398, 75, 50, "Help", 30),
