@@ -94,6 +94,7 @@ class ExperimentEditor {
     // keypad, start/stop, and new step elements
     UI::Padding buttonPadding_;
     UI::NumberKey keys_ [12];
+    UI::Image backspace_;
     UI::Padding buttonCover_;
     UI::Image recycleBin_;
     UI::Button startStopButton_;
@@ -131,6 +132,7 @@ class ExperimentEditor {
          UI::NumberKey(560, 318, 75, 75, '0', "0"),
          UI::NumberKey(640, 318, 75, 75, '.', "."),
          UI::NumberKey(720, 318, 75, 75, '\b', "")},
+    backspace_("img/Backspace.png", 729, 334),
     buttonCover_("img/padding/R_Blue.png", 5, 554, -10, 251, 500),
     recycleBin_("img/Recycle.png", 616, 176),
     startStopButton_(665, 5, 130, 68, "Start", 40),
@@ -699,6 +701,7 @@ class ExperimentEditor {
       for (int i = 0; i < 12; i++) {
         keys_[i].render();
       }
+      backspace_.render();
       
       dragToAdd_.render();
       newStep_->render();
@@ -902,6 +905,7 @@ class LoadSaveMenu {
     const static int NUM_OF_KEYS_ = 41;
     UI::Key keys_ [NUM_OF_KEYS_];
     UI::Button capsButton_;
+    UI::Image backspace_;
     bool caps_ = false;
 
   public:
@@ -956,8 +960,9 @@ class LoadSaveMenu {
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ',', ","),
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '.', "."), 
          UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, '\b', ""), 
-         UI::Key(0, 0, KEY_SIZE_, KEY_SIZE_, ' ', " ")},
-    capsButton_(320, 5, 100, 35, "Caps") {
+         UI::Key(0, 0, KEY_SIZE_ * 8 + 5 * 7, KEY_SIZE_, ' ', " ")},
+    capsButton_(16 + (KEY_SIZE_ + 5) * (48 % 10), 83 + (KEY_SIZE_ + 5) * (48 / 10), KEY_SIZE_ * 2 + 5, KEY_SIZE_, "Caps"),
+    backspace_("img/Backspace.png", 719, 329) {
       updatePaths();
       editor_ = editor;
       // position keys_
@@ -1251,6 +1256,7 @@ class LoadSaveMenu {
           keys_[i].render();
         }
         capsButton_.render();
+        backspace_.render();
       }
 
       // present render
