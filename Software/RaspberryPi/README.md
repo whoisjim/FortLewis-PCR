@@ -16,7 +16,7 @@
 - [ ] polish main menu
 - [ ] add error checking
 - [X] setup program auto launch
-- [ ] replace boot text a splash scree or something
+- [X] replace boot text a splash scree or something
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
 - [ ] fix memory ishues
