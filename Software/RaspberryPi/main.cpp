@@ -909,7 +909,7 @@ class LoadSaveMenu {
     ExperimentEditor* editor_; // the editor to enteract with
     UI::Padding pathSelection_; // padding behind the selected path
     int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection 
-    std::string savePath_ = "/home/phooobschan/FortLewis-PCR/Software/RaspberryPi/experiments/"; // folder to look in for files
+    std::string savePath_ = "experiments/"; // folder to look in for files
     float textScroll_ = 55; // vertical position of experiment paths
     int maxTextScroll_ = 55;
     int touchTimeStart_ = 0; // for keeping track of taps
