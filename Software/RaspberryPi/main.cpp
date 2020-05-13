@@ -52,11 +52,16 @@ bool areYouSure (std::string prompt) {
             UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
             break;
         }
-      } else if (UI::event.type == SDL_FINGERDOWN) {
+      } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
         // button presses
         SDL_Point touchLocation;
-        touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-        touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        if (UI::event.type == SDL_FINGERDOWN) {
+          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        } else { 
+          touchLocation.x = UI::event.button.x;
+          touchLocation.y = UI::event.button.y;
+        }
         // ok button
         SDL_Rect okButtonRect = okButton.getRect();
         if (SDL_PointInRect(&touchLocation, &okButtonRect)) {
@@ -186,11 +191,16 @@ class ExperimentEditor {
                 UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
                 break;
             }
-          } else if (UI::event.type == SDL_FINGERDOWN) {
+          } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
             // button presses
             SDL_Point touchLocation;
-            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            if (UI::event.type == SDL_FINGERDOWN) {
+              touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+              touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            } else { 
+              touchLocation.x = UI::event.button.x;
+              touchLocation.y = UI::event.button.y;
+            }
             // ok button
             SDL_Rect okButtonRect = okButton.getRect();
             if (SDL_PointInRect(&touchLocation, &okButtonRect)) {
@@ -384,11 +394,15 @@ class ExperimentEditor {
           }
 
         // if touch start
-        } else if (UI::event.type == SDL_FINGERDOWN) {
-          
-          // get event location and start time
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
+          // button presses
+          if (UI::event.type == SDL_FINGERDOWN) {
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          } else { 
+            touchLocation.x = UI::event.button.x;
+            touchLocation.y = UI::event.button.y;
+          }
           touchTimeStart_ = UI::event.tfinger.timestamp;
 
           // only use buttons if not holding anything
@@ -450,21 +464,27 @@ class ExperimentEditor {
           }
 
         // touch move
-        } else if (UI::event.type == SDL_FINGERMOTION) {
-          
-          // get event location and velocity
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+        } else if (UI::event.type == SDL_FINGERMOTION || UI::event.type == SDL_MOUSEMOTION) {
           SDL_Point touchDelta;
-          touchDelta.x = UI::event.tfinger.dx * SCREEN_WIDTH;
-          touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
-          
+          if (UI::event.type == SDL_FINGERMOTION) {
+            // get event location and velocity
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            touchDelta.x = UI::event.tfinger.dx * SCREEN_WIDTH;
+            touchDelta.y = UI::event.tfinger.dy * SCREEN_HEIGHT;
+          } else {
+            // get event location and velocity
+            touchLocation.x = UI::event.motion.x;
+            touchLocation.y = UI::event.motion.y;
+            touchDelta.x = 0;//UI::event.motion.xrel;
+            touchDelta.y = 0;//UI::event.motion.yrel;
+          }
           // only allow motion if an experiment is not running
           if (state_ != RUNNING_) {
 
             // if touch speed is grater than 5
             SDL_Rect buttonPaddingRect = buttonPadding_.getRect();
-            if (abs(touchDelta.x) + abs(touchDelta.y) > 5) {
+            if (abs(touchDelta.x) + abs(touchDelta.y) > 5 || SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
               
               // if touch is over button padding
               if (SDL_PointInRect(&touchLocation, &buttonPaddingRect)) {
@@ -528,12 +548,14 @@ class ExperimentEditor {
           }
 
         // touch end
-        } else if (UI::event.type == SDL_FINGERUP) {
-          
-          // record touch location
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
-          
+        } else if (UI::event.type == SDL_FINGERUP || UI::event.type == SDL_MOUSEBUTTONUP) {
+          if (UI::event.type == SDL_FINGERUP) {
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          } else { 
+            touchLocation.x = UI::event.button.x;
+            touchLocation.y = UI::event.button.y;
+          }  
           // if not holding anuthing and the system is not running
           if (heldStep_ == nullptr && heldCycle_ == nullptr && state_ != RUNNING_) {
             
@@ -830,16 +852,21 @@ class MainMenu {
               UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
               break;
           }
-        } else if (UI::event.type == SDL_FINGERDOWN) {
+        } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
           // button presses
           SDL_Point touchLocation;
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          if (UI::event.type == SDL_FINGERDOWN) {
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          } else { 
+            touchLocation.x = UI::event.button.x;
+            touchLocation.y = UI::event.button.y;
+          }
 
           // new experiment button pressed
           SDL_Rect newButtonRect = newButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &newButtonRect)) {
-            editor_->load("/home/pi/Untitled.exp");
+            editor_->load("Untitled.exp");
             return EDITOR_MENU;
           }
 
@@ -882,7 +909,7 @@ class LoadSaveMenu {
     ExperimentEditor* editor_; // the editor to enteract with
     UI::Padding pathSelection_; // padding behind the selected path
     int selectedPathIndex_ = -1; // id of the selected path, -1 for no selection 
-    std::string savePath_ = "/home/pi/experiments/"; // folder to look in for files
+    std::string savePath_ = "/home/phooobschan/FortLewis-PCR/Software/RaspberryPi/experiments/"; // folder to look in for files
     float textScroll_ = 55; // vertical position of experiment paths
     int maxTextScroll_ = 55;
     int touchTimeStart_ = 0; // for keeping track of taps
@@ -1059,11 +1086,16 @@ class LoadSaveMenu {
               UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
               break;
           }
-        } else if (UI::event.type == SDL_FINGERDOWN) {
+        } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
           // button presses
           SDL_Point touchLocation;
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          if (UI::event.type == SDL_FINGERDOWN) {
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          } else { 
+            touchLocation.x = UI::event.button.x;
+            touchLocation.y = UI::event.button.y;
+          }
 
           touchTimeStart_ = UI::event.tfinger.timestamp;
           // new button
@@ -1077,7 +1109,7 @@ class LoadSaveMenu {
                 break;
               }
             }
-            editor_->load("/home/pi/Untitled.exp");
+            editor_->load("Untitled.exp");
             selectedPathIndex_ = -1;
             textScroll_ = 999;
             newSavePath_.setText("");
@@ -1188,18 +1220,29 @@ class LoadSaveMenu {
               toggleCaps();
             }
           }
-        } else if (UI::event.type == SDL_FINGERMOTION) {
+        } else if (UI::event.type == SDL_FINGERMOTION || UI::event.type == SDL_MOUSEMOTION) {  
           if (!keybord_) {  // disable if popup is open
-            // scroll through files
-            if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) + abs(UI::event.tfinger.dx * SCREEN_WIDTH) > 5) {
-              textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
+            if (UI::event.type == SDL_FINGERMOTION) {
+              // scroll through files
+              if (abs(UI::event.tfinger.dy * SCREEN_HEIGHT) + abs(UI::event.tfinger.dx * SCREEN_WIDTH) > 5) {
+                textScroll_ += UI::event.tfinger.dy * SCREEN_HEIGHT;
+              }
+            } else if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+              // scroll through files
+              textScroll_ += UI::event.motion.yrel;
             }
           }
-        } else if (UI::event.type == SDL_FINGERUP) {
-         if (!keybord_) { // disable if popup is open
+        } else if (UI::event.type == SDL_FINGERUP || UI::event.type == SDL_MOUSEBUTTONUP) {
+          if (!keybord_) { // disable if popup is open
+            // button presses
             SDL_Point touchLocation;
-            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            if (UI::event.type == SDL_FINGERUP) {
+              touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+              touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+            } else { 
+              touchLocation.x = UI::event.button.x;
+              touchLocation.y = UI::event.button.y;
+            }
             // select path
             if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > maxTextScroll_) {
               selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
@@ -1285,11 +1328,16 @@ class HelpMenu {
               UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
               break;
           }
-        } else if (UI::event.type == SDL_FINGERDOWN) {
+        } else if (UI::event.type == SDL_FINGERDOWN || UI::event.type == SDL_MOUSEBUTTONDOWN) {
           // button presses
           SDL_Point touchLocation;
-          touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
-          touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          if (UI::event.type == SDL_FINGERDOWN) {
+            touchLocation.x = UI::event.tfinger.x * SCREEN_WIDTH;
+            touchLocation.y = UI::event.tfinger.y * SCREEN_HEIGHT;
+          } else { 
+            touchLocation.x = UI::event.button.x;
+            touchLocation.y = UI::event.button.y;
+          }
         }
       }
       return HELP_MENU;
