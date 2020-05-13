@@ -19,7 +19,7 @@ namespace UI {
       fprintf(stderr, "could not initialize sdl2: %s\n", SDL_GetError());
       return 1;
     }
-    window = SDL_CreateWindow("FLC:PCR", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN);
+    window = SDL_CreateWindow("FLC:PCR", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     if (window == NULL) {
       fprintf(stderr, "could not create window: %s\n", SDL_GetError());
       return 1;
@@ -33,7 +33,7 @@ namespace UI {
       fprintf(stderr, "could not initialize ttf: %s\n", SDL_GetError());
       return 1;
     }
-    SDL_ShowCursor(SDL_DISABLE);
+    //SDL_ShowCursor(SDL_DISABLE);
     return 0;
   }
 

@@ -476,8 +476,8 @@ class ExperimentEditor {
             // get event location and velocity
             touchLocation.x = UI::event.motion.x;
             touchLocation.y = UI::event.motion.y;
-            touchDelta.x = 0;//UI::event.motion.xrel;
-            touchDelta.y = 0;//UI::event.motion.yrel;
+            touchDelta.x = UI::event.motion.xrel;
+            touchDelta.y = UI::event.motion.yrel;
           }
           // only allow motion if an experiment is not running
           if (state_ != RUNNING_) {
