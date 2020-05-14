@@ -789,14 +789,11 @@ class ExperimentEditor {
     }
 
     ~ExperimentEditor () {
-      if (selectedTextBox_ != nullptr) {
-        delete selectedTextBox_;
-      }
       delete newStep_;
-      if (selectedTextBox_ != nullptr) {
+      if (heldStep_ != nullptr) {
         delete heldStep_;
       }
-      if (selectedTextBox_ != nullptr) {
+      if (heldCycle_ != nullptr) {
         delete heldCycle_;
       }
       closeSerial();
