@@ -19,7 +19,7 @@
 - [X] replace boot text a splash scree or something
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
-- [ ] fix memory ishues
+- [X] fix memory ishues
 ## Installing for Raspberry Pi B Vi.2 Raspbian Buster Lite February 2020
 ### install SDL2 and dependencies
 ```
