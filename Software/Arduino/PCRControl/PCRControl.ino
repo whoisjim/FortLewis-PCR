@@ -130,7 +130,7 @@ rampPid peltierPID;
 
 void setup() {
   // setup serial
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
@@ -154,23 +154,34 @@ void setup() {
 void loop() {
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
+    if (incomingCommand == "d\n") {
+      // requast system data
+      Serial.print(avgPTemp);
+      Serial.print(" ");
+      Serial.print(avgPPWM);
+      Serial.print(" ");
+      Serial.print(currentLidTemp);
+      Serial.print("\n");
+    }
     if (incomingCommand == "offl\n") {
       lPower = false;
+    } else if (incomingCommand == "offp\n") {
+      pPower = false;
     } else if (incomingCommand == "off\n") {
       pPower = false;
+      lPower = true;
     } else if (incomingCommand.substring(0,3) == "off") {
       pPower = false;
       targetPeltierTemp = incomingCommand.substring(3).toFloat();
     }
     if (incomingCommand == "onl\n") {
       lPower = true;
+    } else if (incomingCommand == "onp\n") {
+      pPower = true;
     } else if (incomingCommand == "on\n") {
       peltierPID.reset();
       pPower = true;
-    } else if (incomingCommand.substring(0,2) == "on") {
-      peltierPID.reset();
-      pPower = true;
-      targetPeltierTemp = incomingCommand.substring(2).toFloat();
+      lPower = true;
     }
     if (incomingCommand.substring(0,2) == "pt") {
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
@@ -213,14 +224,6 @@ void loop() {
   avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
   
   if (!pPower || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
-    // for graphing system state
-    Serial.print(avgPTemp);
-    Serial.print(" 0 ");
-    //Serial.print(analogRead(A1) * 0.065168);
-    //Serial.print(" ");
-    Serial.print(currentLidTemp);
-    Serial.print("\n");
-    
     digitalWrite(inA, LOW);
     digitalWrite(inB, LOW);
     analogWrite(fpwm, 1024);
@@ -231,16 +234,6 @@ void loop() {
     avgPPWM = peltierPWM; // fixes nan error
     return;
   }
-
-  // for recording system state
-  Serial.print(avgPTemp);
-  Serial.print(" ");
-  Serial.print(avgPPWM);
-  Serial.print(" ");
-  //Serial.print(analogRead(cPin) * 0.065168);
-  //Serial.print(" ");
-  Serial.print(currentLidTemp);
-  Serial.print("\n");
 
   // pieltier controll
   // convert pieltierDelta to pwm, inA, inB, and fan signals
