@@ -118,6 +118,7 @@ class ExperimentEditor {
     UI::Padding progressBar_Padding_;
     UI::Padding progressBar_;
     UI::Text targetTemperature_;
+    UI::Text currentTemperature_;
     UI::Text etaText_;
     UI::Text saveFileText_;
 
@@ -150,7 +151,8 @@ class ExperimentEditor {
     progressBar_Padding_("img/padding/S_Grey_2.png", 2, 26, 459, 69, 16),
     progressBar_("img/padding/S_Red.png", 2, 26, 459, 0, 16),
     targetTemperature_("fonts/Inconsolata-Medium.ttf", 16, 100, 459, "Idle"),
-    etaText_("fonts/Inconsolata-Medium.ttf", 16, 200, 459, "ETA"),
+    currentTemperature_("fonts/Inconsolata-Medium.ttf", 16, 175, 459, "none"),
+    etaText_("fonts/Inconsolata-Medium.ttf", 16, 250, 459, "ETA"),
     saveFileText_("fonts/Inconsolata-Medium.ttf", 16, 795, 459, "", -1) {
       openSerial();
     }
@@ -232,6 +234,9 @@ class ExperimentEditor {
       progressBar_.setTexture("img/padding/S_Green.png", 2);
       startStopButton_.setText("Abort");
       gettimeofday(&stepStartTime_, NULL);
+    
+      sleep(3);
+      
       nextStep(); 
     }
 
@@ -241,11 +246,13 @@ class ExperimentEditor {
       gettimeofday(&currentTime, NULL);
       double currentDuration = (currentTime.tv_sec - stepStartTime_.tv_sec) + (currentTime.tv_usec - stepStartTime_.tv_usec) * 1e-6;
       
+      sleep(1);
+      
       static int cnt;
-      cnt = (cnt + 1) % 120;
-      if (cnt == 59) {
+      cnt = (cnt + 1) % 4;
+      if (cnt == 1) {
         writeSerial("d\n");
-      } else if (cnt == 119) {
+      } else if (cnt == 3) {
         std::string serialString = readSerial(); 
         
         std::string sub = "none";
@@ -253,12 +260,13 @@ class ExperimentEditor {
           if (serialString[i] == ' ') {
             sub = serialString.substr(0, i);
             UI::CycleStep* step = cycleArray_.getStep(experimentIndex_);
-            if (std::stof(sub) - std::stof(step->getTemperature()->getText()) < 5) {
+            if (abs(std::stof(sub) - std::stof(step->getTemperature()->getText())) < 5) {
               atTemperature_ = true;
             }
             break;
           }
-        }  
+        }
+        currentTemperature_.setText(sub + "\xb0" + "C");
       }
 
       if (atTemperature_ && !timerStarted_) {
@@ -275,6 +283,8 @@ class ExperimentEditor {
 
     // set plc to next temperature in experiment
     void nextStep () {
+
+      sleep(3);
       experimentIndex_ += 1;
       
       progressBar_.setWH(69 * (float)experimentIndex_ / (float)cycleArray_.size(), 16);
@@ -292,6 +302,7 @@ class ExperimentEditor {
 
     // reached end of experiment shut plc down
     void finishExperiment () {
+      sleep(3);
       writeSerial("off\n");
       targetTemperature_.setText("Finished");
       statusIndicator_.setTexture("img/Blue_Light.png");
@@ -303,6 +314,7 @@ class ExperimentEditor {
 
     // pematurely end experiment turn plc off
     void abortExperiment () {
+      sleep(3);
       writeSerial("off\n");
       targetTemperature_.setText("Aborted");
       statusIndicator_.setTexture("img/Red_Light.png");
@@ -355,25 +367,30 @@ class ExperimentEditor {
 
       if (tcsetattr(serialPort_, TCSANOW, &tty) != 0) {
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+      } else {
+        printf("Opened Serial Port\n"); 
       }
     }
 
     // close serial port
     void closeSerial () {
       close(serialPort_);
+      printf("Closed Serial Port\n");
     }
 
     // read data from serial port
     std::string readSerial () {
       char readBuffer [256];
       memset(&readBuffer, '\0', sizeof(readBuffer));
-      read(serialPort_, &readBuffer, 256);
+      int n = read(serialPort_, &readBuffer, 256);
+      printf("Read Serial  %i : %s", n, std::string(readBuffer).c_str());
       return std::string(readBuffer);
     }
 
     // write data to serial port
     void writeSerial (std::string message) {
       write(serialPort_, message.c_str(), sizeof(message.c_str()));
+      printf("Write Serial: %s", message.c_str());
     }
     
     // performs editor input and logic returns state to go to next
@@ -390,6 +407,21 @@ class ExperimentEditor {
             case SDLK_s: // pressed s, take screenshot
               static int screenshotNumber;
               UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
+              break;
+            case SDLK_o:
+              writeSerial("on\n");
+              break;
+            case SDLK_i:
+              writeSerial("off\n");
+              break;
+            case SDLK_p:
+              writeSerial("state\n");
+              break;
+            case SDLK_d:
+              writeSerial("d\n");
+              break;
+            case SDLK_r:
+              readSerial();
               break;
           }
 
@@ -744,7 +776,8 @@ class ExperimentEditor {
         progressBar_.render();
       }
       targetTemperature_.render();
- 
+      currentTemperature_.render();
+
       if (heldStep_ != nullptr) {
         heldStep_->render();
       }
@@ -1356,7 +1389,7 @@ int main(int argc, char* args[]) {
   if (UI::init()) {
     return 1;
   }
- 
+
   states state = MAIN_MENU; // the curent state
   static states previousState = MAIN_MENU; // the previous state
   static states stateChangeCheck = MAIN_MENU; // for identifying a state change
@@ -1412,12 +1445,12 @@ int main(int argc, char* args[]) {
       stateChangeCheck = state;
     }
     // check for errors dump to console
-    if (SDL_GetError()[0] != '\0') {
-      std::cout << "SDL ERROR: " << SDL_GetError() << std::endl;
-      SDL_ClearError();
-    }
+    //if (SDL_GetError()[0] != '\0') {
+    //  std::cout << "SDL ERROR: " << SDL_GetError() << std::endl;
+    //  SDL_ClearError();
+    //}
   }
-  
+
   // clean up
   UI::quit();
 

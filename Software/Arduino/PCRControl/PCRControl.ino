@@ -163,16 +163,17 @@ void loop() {
       Serial.print(currentLidTemp);
       Serial.print("\n");
     }
+    if (incomingCommand == "state\n") {
+      Serial.print(pPower);
+      Serial.print("\n");
+    }
     if (incomingCommand == "offl\n") {
       lPower = false;
     } else if (incomingCommand == "offp\n") {
       pPower = false;
     } else if (incomingCommand == "off\n") {
       pPower = false;
-      lPower = true;
-    } else if (incomingCommand.substring(0,3) == "off") {
-      pPower = false;
-      targetPeltierTemp = incomingCommand.substring(3).toFloat();
+      lPower = false;
     }
     if (incomingCommand == "onl\n") {
       lPower = true;
@@ -202,6 +203,9 @@ void loop() {
 
   currentLidTemp = LidT.getTemp(); // read lid temp
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
+  if (isnan(currentPeltierTemp) || isinf(currentPeltierTemp)) {
+    currentPeltierTemp = avgPTemp;
+  }
 
   currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
   currentPeltierTemp = 0.6075525829531135 * currentPeltierTemp + 15.615801552818361; // seccond estimate
@@ -209,6 +213,10 @@ void loop() {
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
+  if (isnan(peltierPWM ) || isinf(peltierPWM )) {
+    peltierPWM = avgPPWM;
+  }
+  avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
   
   // Lid control
   if (lPower) {
@@ -220,8 +228,6 @@ void loop() {
   } else {
     digitalWrite(ssr, LOW);
   }
-
-  avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
   
   if (!pPower || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
     digitalWrite(inA, LOW);
@@ -231,7 +237,9 @@ void loop() {
     //digitalWrite(ssr, LOW);
 
     peltierPID.reset();
-    avgPPWM = peltierPWM; // fixes nan error
+    // fixes nan error
+    avgPTemp = currentPeltierTemp;
+    avgPPWM = peltierPWM; 
     return;
   }
 
