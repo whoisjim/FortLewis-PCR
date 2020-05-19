@@ -11,6 +11,8 @@ const int ssr = 9; // solid state relay signal
 bool pPower = false; // software pielter on/off
 bool lPower = false; // software lid on/off
 
+bool verboseState = false; // spam serial with state every loop?
+
 double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
 int limitPWMH = 255;
 int limitPWMC = 255;
@@ -154,6 +156,13 @@ void setup() {
 void loop() {
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
+    if (incomingCommand == "v\n") {
+      if (verboseState) {
+        verboseState = false;
+      } else {
+        verboseState = true;
+      }
+    }
     if (incomingCommand == "d\n") {
       // requast system data
       Serial.print(avgPTemp);
@@ -217,7 +226,15 @@ void loop() {
     peltierPWM = avgPPWM;
   }
   avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
-  
+
+  if (verboseState) {
+    Serial.print(avgPTemp);
+    Serial.print(" ");
+    Serial.print(avgPPWM);
+    Serial.print(" ");
+    Serial.print(currentLidTemp);
+    Serial.print("\n");
+  }  
   // Lid control
   if (lPower) {
     if(currentLidTemp < 90){ 
