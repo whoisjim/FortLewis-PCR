@@ -18,12 +18,12 @@ int limitPWMH = 255;
 int limitPWMC = 255;
 
 float avgPTemp = 0; // last average for peltier temperature
-int avgPTempSampleSize = 10; // sample size for peltier temperature moving average
+int avgPTempSampleSize = 100; // sample size for peltier temperature moving average
 
 float avgPPWM = 0; // last average for peltier temperature
-int avgPPWMSampleSize = 4; // sample size for peltier temperature moving average
+int avgPPWMSampleSize = 100; // sample size for peltier temperature moving average was 4
 
-double targetPeltierTemp = 40; // the tempature the system will try to move to, in degrees C
+double targetPeltierTemp = 29; // the tempature the system will try to move to, in degrees C
 double currentPeltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
 
 double currentLidTemp; 
@@ -73,35 +73,6 @@ class pid {
   }
 };
 
-class rampPid {
-  private:
-  unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
-  double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
-  double iErrorLimit = 127;
-  
-  public:
-  void reset(){
-    iError = 0;
-  }
-  
-  double calculate(double currentTemp, double targetTemp) { // performs pid calculation
-    lastTime = currentTime;
-    currentTime = millis();
-    lError = pError;
-    pError = targetTemp - currentTemp;
-    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
-    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
-    //return (289 / 6 - (5 * targetTemp) / 12) * pError + (-0.383333 + 0.00833333 * targetTemp) * iError + 10000000 * dError;
-    if (70 > targetTemp) {
-      return 19 * pError + 0.2 * iError + 10000000 * dError;
-    } else if (80 > targetTemp) {
-      return 9 * pError + 0.17 * iError + 10000000 * dError;
-    } else {
-      return 9 * pError + 0.40 * iError + 10000000 * dError;
-    }
-  }
-};
-
 // for creating a tempature sensor
 // includes noise reduction
 // call resetTemp() before a series of getTemp() calls
@@ -128,7 +99,7 @@ TempSensor peltierT(thermP);
 TempSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-rampPid peltierPID;
+pid peltierPID(9, 0.4, 1000);
 
 void setup() {
   // setup serial
@@ -193,6 +164,15 @@ void loop() {
       pPower = true;
       lPower = true;
     }
+    if (incomingCommand.substring(0,2) == "kp") {
+      peltierPID.setKp(incomingCommand.substring(2).toFloat());
+    }
+    if (incomingCommand.substring(0,2) == "ki") {
+      peltierPID.setKi(incomingCommand.substring(2).toFloat());
+    }
+    if (incomingCommand.substring(0,2) == "kd") {
+      peltierPID.setKd(incomingCommand.substring(2).toFloat());
+    }
     if (incomingCommand.substring(0,2) == "pt") {
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
     }
@@ -219,14 +199,13 @@ void loop() {
   currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
   currentPeltierTemp = 0.6075525829531135 * currentPeltierTemp + 15.615801552818361; // seccond estimate
   
-  avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average input with the last 9 inputs
+  avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
   if (isnan(peltierPWM ) || isinf(peltierPWM )) {
     peltierPWM = avgPPWM;
   }
-  avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average input with the last 9 inputs
-
+  avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average
   if (verboseState) {
     Serial.print(avgPTemp);
     Serial.print(" ");
@@ -255,8 +234,8 @@ void loop() {
 
     peltierPID.reset();
     // fixes nan error
-    avgPTemp = currentPeltierTemp;
-    avgPPWM = peltierPWM; 
+    //avgPTemp = currentPeltierTemp;
+    //avgPPWM = peltierPWM; 
     return;
   }
 
@@ -271,4 +250,5 @@ void loop() {
     digitalWrite(inA, LOW);
     digitalWrite(inB, HIGH);
   }
+  delay(500);
 }
