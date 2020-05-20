@@ -1,14 +1,14 @@
 # To do:
 ## software
 - [ ] Develop Android app
-- [ ] Develop Raspberry Pi app
+- [X] Develop UI app. see Software/RaspberryPi/README.md for details
 - [ ] ~Move cycle manager to Arduino script~
 - [ ] Generalize PID tuneing
 - [X] Calabrate block temperature
 ## Hardware
 - [ ] Redo heating block
 - [X] Redo heatsink
-- [ ] Create PCB scematic
+- [X] Create PCB scematic
 - [ ] Design chase
 
 # Current Tasks:
