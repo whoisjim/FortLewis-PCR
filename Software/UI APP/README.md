@@ -1,6 +1,6 @@
 # FLC-PCR UI APP
 This application handels user interaction, experiment managment, cycle timing and communicating with PCRControl.ino to perform PCR. Currently only compatible with lunix.
-## Todo
+## To do:
 - [X] fix load floating point problem
 - [X] add floating pont support to num key
 - [X] add estamated time to completion

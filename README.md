@@ -1,19 +1,26 @@
-# To do:
-## software
+# FLC-PCR
+A field deployable and low cost thermocycler develpoed by students at Fort Lewis College.
+
+## To do:
+### software
 - [ ] Develop Android app
-- [X] Develop UI app. see Software/RaspberryPi/README.md for details
+- [X] Develop UI app. see Software/UI APP/README.md for details
 - [ ] ~Move cycle manager to Arduino script~
 - [ ] Generalize PID tuneing
 - [X] Calabrate block temperature
-## Hardware
+### Hardware
 - [ ] Redo heating block
 - [X] Redo heatsink
 - [X] Create PCB scematic
 - [ ] Design chase
 
-# Current Tasks:
-## James Ferguson
-- Develop Raspberry Pi app
+## Student Members:
+James Ferguson,
+Jesse Duran,
+Wesley Killinen
 
-## Jesse Duran
-- Design chase
+## Faculty Advisiors:
+Jason Wagner,
+Caroline Kulesza,
+Christie Chatterley,
+Yiyan Li
