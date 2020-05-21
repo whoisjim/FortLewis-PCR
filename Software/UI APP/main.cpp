@@ -8,6 +8,7 @@
 #include <ctime>
 #include <sys/time.h>
 #include <filesystem>
+#include <fstream>
 
 #include "ui.h"
 
@@ -80,6 +81,8 @@ bool areYouSure (std::string prompt) {
 // class for performing logic and rendering of the experiment editor where users can edit and run experiments
 class ExperimentEditor {
   private:
+    std::ofstream logFile_;
+    timeval experimentStartTime_;
     int serialPort_; // the serial port for communication to atmega328p
     bool atTemperature_; // is the system at the target temperature
     bool timerStarted_; // has the timer for the current step started
@@ -220,6 +223,10 @@ class ExperimentEditor {
 
     // turn on and start sending temperature data to plc
     void startExperiment () {
+      static int logFileNumber;
+      logFile_.open("data" + std::to_string(logFileNumber++) + ".txt");
+      gettimeofday(&experimentStartTime_, NULL);
+      
       if (cycleArray_.size() == 0) {
         return;
       }
@@ -242,6 +249,11 @@ class ExperimentEditor {
 
     // check if an update to plc temperature is readdy
     void updateStep () {
+      if (atTemperature_ && !timerStarted_) {
+        gettimeofday(&stepStartTime_, NULL);
+        timerStarted_ = true;
+      }
+
       timeval currentTime;
       gettimeofday(&currentTime, NULL);
       double currentDuration = (currentTime.tv_sec - stepStartTime_.tv_sec) + (currentTime.tv_usec - stepStartTime_.tv_usec) * 1e-6;
@@ -263,18 +275,14 @@ class ExperimentEditor {
             if (abs(std::stof(sub) - std::stof(step->getTemperature()->getText())) < 5) {
               atTemperature_ = true;
             }
+            logFile_ << step->getTemperature()->getText() << " " << serialString;
             break;
           }
         }
         currentTemperature_.setText(sub + "\xb0" + "C");
       }
-
-      if (atTemperature_ && !timerStarted_) {
-        gettimeofday(&stepStartTime_, NULL);
-        timerStarted_ = true;
-      }
       
-      if (timerStarted_ && currentDuration > std::stoi(cycleArray_.getStep(experimentIndex_)->getDuration()->getText())) {
+      if (timerStarted_ && currentDuration > std::stof(cycleArray_.getStep(experimentIndex_)->getDuration()->getText())) {
         nextStep();
         gettimeofday(&stepStartTime_, NULL);
       }
@@ -302,6 +310,11 @@ class ExperimentEditor {
 
     // reached end of experiment shut plc down
     void finishExperiment () {
+      timeval currentTime;
+      gettimeofday(&currentTime, NULL);
+      logFile_ << "e " << (currentTime.tv_sec - experimentStartTime_.tv_sec) + (currentTime.tv_usec - experimentStartTime_.tv_usec) * 1e-6 << std::endl;
+      logFile_.close(); 
+      
       sleep(3);
       writeSerial("off\n");
       targetTemperature_.setText("Finished");
@@ -314,6 +327,11 @@ class ExperimentEditor {
 
     // pematurely end experiment turn plc off
     void abortExperiment () {
+      timeval currentTime;
+      gettimeofday(&currentTime, NULL);
+      logFile_ << "e " << (currentTime.tv_sec - experimentStartTime_.tv_sec) + (currentTime.tv_usec - experimentStartTime_.tv_usec) * 1e-6 << std::endl;
+      logFile_.close(); 
+      
       sleep(3);
       writeSerial("off\n");
       targetTemperature_.setText("Aborted");
