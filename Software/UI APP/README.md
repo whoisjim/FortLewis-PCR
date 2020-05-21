@@ -1,4 +1,5 @@
-# Raspberry Pi
+# FLC-PCR UI APP
+This application handels user interaction, experiment managment, cycle timing and communicating with PCRControl.ino to perform PCR. Currently only compatible with lunix.
 ## Todo
 - [X] fix load floating point problem
 - [X] add floating pont support to num key
@@ -20,8 +21,8 @@
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
 - [X] fix memory ishues
-## Installing for Raspberry Pi B Vi.2 Raspbian Buster Lite February 2020
-### install SDL2 and dependencies
+## Install and Compile for Lunix
+### Install SDL2 and dependencies for comand line
 ```
 sudo apt-get install mercurial libfontconfig-dev qt5-default automake mercurial libtool libfreeimage-dev libopenal-dev libpango1.0-dev libsndfile-dev libudev-dev libtiff5-dev libwebp-dev libasound2-dev libaudio-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libxss-dev libesd0-dev freeglut3-dev libmodplug-dev libsmpeg-dev libjpeg-dev
 hg clone https://hg.libsdl.org/SDL
@@ -34,18 +35,17 @@ cd ..
 sudo apt-get install libsdl2-image-dev
 sudo apt-get install libsdl2-ttf-dev
 ```
-### Compile with g++ 8.3.0
+### Compile with g++ 8.3.0 for comand line
 ```
 g++ -o flcpcr main.cpp ui.cpp $(SDL/sdl2-config --cflags --libs) -lSDL2_image -lSDL2_ttf -std=c++17 -lstdc++fs -Wall
 ```
-### Run
+### Install SDL2 and dependencies for x11
 ```
-./flcpcr
+sudo apt-get install libsdl2-dev
+sudo apt-get install libsdl2-image-dev
+sudo apt-get install libsdl2-ttf-dev
 ```
-### Run at boot
-edit `/etc/rc.local` so it has the folowing lines before `exit 0`.
+### Compile with g++ 8.3.0 for x11
 ```
-cd /home/pi/
-./flcpcr
+g++ -o flcpcr main.cpp ui.cpp -lSDL2 -lSDL2_image -lSDL2_ttf -std=c++17 -lstdc++fs -Wall
 ```
-where `/home/pi/` is the location of the flcpcr executable.

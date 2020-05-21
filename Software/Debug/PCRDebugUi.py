@@ -171,18 +171,18 @@ class PCRDebugApp(QtGui.QMainWindow):
 
     def comConnect(self): # connects and disconnects com port
         if self.connected and not self.collect:
+            self.port.write("verbose\n".encode())
             self.port.close()
             self.connected = False
             self.comBtn.setText("Connect")
             self.comTextBox.setReadOnly(False)
         elif not self.collect:
             try:
-                self.port = serial.Serial('COM' + str(self.comTextBox.text()), 9600, timeout=0.5) 
+                self.port = serial.Serial(str(self.comTextBox.text()), 115200, timeout=0.5) 
                 self.connected = True
                 self.comBtn.setText("Disconnect")
                 self.comTextBox.setReadOnly(True)
-                self.port.write("off\n".encode())
-                self.port.write(("pt" + str(self.targetPeltierTemp) + "\n").encode())
+                self.port.write("verbose\n".encode())
             except:
                 pass
 
@@ -197,7 +197,7 @@ class PCRDebugApp(QtGui.QMainWindow):
             self.logFile.close()
         elif self.connected:
             self.collect = True
-            self.port.write(("on" + str(self.targetPeltierTemp) + "\n").encode())
+            self.port.write("on\n".encode())
             self.runBtn.setText("Stop")
             self.port.flushInput()
             fileName = "Data"

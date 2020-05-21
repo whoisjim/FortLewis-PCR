@@ -12,6 +12,7 @@ bool pPower = false; // software pielter on/off
 bool lPower = false; // software lid on/off
 
 bool verboseState = false; // spam serial with state every loop?
+bool verbosePID = false;  // spam serial with target and curent temperature?
 
 double peltierPWM = 0; // the PWM signal * curent direction to be sent to curent drivers for peltier
 int limitPWMH = 255;
@@ -21,7 +22,7 @@ float avgPTemp = 0; // last average for peltier temperature
 int avgPTempSampleSize = 100; // sample size for peltier temperature moving average
 
 float avgPPWM = 0; // last average for peltier temperature
-int avgPPWMSampleSize = 100; // sample size for peltier temperature moving average was 4
+int avgPPWMSampleSize = 2; // sample size for peltier temperature moving average was 4
 
 double targetPeltierTemp = 29; // the tempature the system will try to move to, in degrees C
 double currentPeltierTemp; // the tempature curently read from the thermoristor connected to thermP, in degrees C
@@ -73,6 +74,69 @@ class pid {
   }
 };
 
+// class for creating a pid system
+class RampPID {
+  private:
+  double kp; // higher moves faster
+  double ki; // higher fixes ofset and faster
+  double kd; // higher settes faster but creastes ofset
+  double kpc;
+  double kic;
+  double kdc;
+  unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
+  double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
+  double iErrorLimit = 255;
+  
+  public:
+  RampPID (double proportionalGain, double integralGain, double derivativeGain, double proportionalGainC, double integralGainC, double derivativeGainC) {
+    kp = proportionalGain; // higher moves faster
+    ki = integralGain; // higher fixes ofset and faster
+    kd = derivativeGain; // higher settes faster but creastes ofset and amplifies noise
+
+    kpc = proportionalGainC; // higher moves faster
+    kic = integralGainC; // higher fixes ofset and faster
+    kdc = derivativeGainC; // higher settes faster but creastes ofset and amplifies noise
+  }
+
+  void reset(){
+    iError = 0;
+  }
+  
+  double calculate(double currentTemp, double targetTemp) { // performs pid calculation returns error
+    lastTime = currentTime;
+    currentTime = millis();
+    lError = pError;
+    pError = targetTemp - currentTemp;
+    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
+    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
+    return (kp * targetTemp + kpc) * pError + (ki * targetTemp + kpc) * iError + (kd * targetTemp + kpc) * dError;
+  }
+  
+  void setKp(float value) {
+    kp = value;
+  }
+  
+  void setKi(float value) {
+    ki = value;
+  }
+  
+  void setKd(float value) {
+    kd = value;
+  }
+
+  void setKpc(float value) {
+    kpc = value;
+  }
+  
+  void setKic(float value) {
+    kic = value;
+  }
+  
+  void setKdc(float value) {
+    kdc = value;
+  }
+};
+
 // for creating a tempature sensor
 // includes noise reduction
 // call resetTemp() before a series of getTemp() calls
@@ -99,7 +163,7 @@ TempSensor peltierT(thermP);
 TempSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-pid peltierPID(9, 0.4, 1000);
+RampPID peltierPID(0, 0, 0, 10, 0, 0);
 
 void setup() {
   // setup serial
@@ -127,11 +191,18 @@ void setup() {
 void loop() {
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
-    if (incomingCommand == "v\n") {
+    if (incomingCommand == "verbose\n") {
       if (verboseState) {
         verboseState = false;
       } else {
         verboseState = true;
+      }
+    }
+    if (incomingCommand == "pid\n") {
+      if (verbosePID) {
+        verbosePID = false;
+      } else {
+        verbosePID = true;
       }
     }
     if (incomingCommand == "d\n") {
@@ -213,7 +284,15 @@ void loop() {
     Serial.print(" ");
     Serial.print(currentLidTemp);
     Serial.print("\n");
-  }  
+  }
+  if (verbosePID) {
+    Serial.print(avgPTemp);
+    Serial.print(" ");
+    Serial.print(targetPeltierTemp);
+    Serial.print(" ");
+    Serial.print(avgPPWM);
+    Serial.print("\n");
+  } 
   // Lid control
   if (lPower) {
     if(currentLidTemp < 90){ 
@@ -250,5 +329,4 @@ void loop() {
     digitalWrite(inA, LOW);
     digitalWrite(inB, HIGH);
   }
-  delay(500);
 }
