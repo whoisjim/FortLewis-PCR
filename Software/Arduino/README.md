@@ -3,7 +3,8 @@
 Manages the moment to moment temperature. controll of the 
 is performed through serial communication
 ### To do:
- - [ ] optimize PID and software low pass filters
+- [ ] Add boiling point set command and shutoff
+- [ ] Optimize PID and software low pass filters
 ### Commands
 #### d\n
 request a data point form the ststem of the format [Block Temperature] [PWM] [Lid Temperature]\n.

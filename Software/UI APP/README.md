@@ -20,6 +20,7 @@ This application handels user interaction, experiment managment, cycle timing an
 - [X] replace boot text a splash scree or something
 - [ ] add button amimations
 - [ ] try to inprove microcontroller communication speed
+- [ ] add settings menu: boiling point 
 - [X] fix memory ishues
 ## Install and Compile for Lunix
 ### Install SDL2 and dependencies for comand line
