@@ -963,6 +963,7 @@ class LoadSaveMenu {
     int touchTimeStart_ = 0; // for keeping track of taps
     
     // UI elements
+    std::vector<UI::Image> icons_;
     std::vector<UI::Text> experimentPathTexts_; // file path texts
     UI::Padding buttonPadding_;
     UI::Button newButton_;
@@ -970,6 +971,7 @@ class LoadSaveMenu {
     UI::Button saveButton_;
     UI::Button keybordButton_;
     UI::Button backButton_;
+    UI::Button upDirectory_;
     UI::Button deleteButton_;
     UI::Text fileText_; 
     UI::TextBox newSavePath_;
@@ -991,7 +993,8 @@ class LoadSaveMenu {
     loadButton_(0, 0, 100, 35, "Load"),
     saveButton_(0, 0, 100, 35, "Save"),
     keybordButton_(0, 0, 100, 35, "Keybord"),
-    backButton_(215, 5, 100, 35, "Cancel"),
+    backButton_(320, 5, 100, 35, "Cancel"),
+    upDirectory_(215, 5, 100, 35, "Up Dir"),
     deleteButton_(695, 5, 100, 35, "Delete"),
     fileText_("fonts/Inconsolata-Medium.ttf", 16, 0, 0, "Filename :"),
     newSavePath_(0, 0, 695, 21),
@@ -1075,13 +1078,21 @@ class LoadSaveMenu {
     
     // checks for new files and updates the list of experiment files
     void updatePaths () {
+      icons_.clear();
       experimentPathTexts_.clear();
       // iterate through all files including subdirectories
-      for (const auto & entry : std::filesystem::recursive_directory_iterator(savePath_)) {
+      for (const auto & entry : std::filesystem::directory_iterator(savePath_)) {
         // only add files with a .exp extention
         if (entry.path().string().substr(entry.path().string().size() - 4, 4) == ".exp") {
           UI::Text entryText("fonts/Inconsolata-Medium.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size(), entry.path().string().size() - savePath_.size() - 4));
           experimentPathTexts_.push_back(entryText);
+          UI::Image icon("img/Cycle.png", 0, 0);
+          icons_.push_back(icon);
+        } else if (std::filesystem::is_directory(entry.path())) { 
+          UI::Text entryText("fonts/Inconsolata-Medium.ttf", 16, 0, 0, entry.path().string().substr(savePath_.size()));
+          experimentPathTexts_.push_back(entryText);
+          UI::Image icon("img/Folder.png", 0, 0);
+          icons_.push_back(icon);
         }
       }
       movePaths();
@@ -1090,7 +1101,10 @@ class LoadSaveMenu {
     // position experiment paths
     void movePaths () {
       for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
-        experimentPathTexts_[i].setXY(15, i * 21 + textScroll_);
+        experimentPathTexts_[i].setXY(15 + 5 + 16, i * 21 + textScroll_);
+      }
+    for (unsigned int i = 0; i < icons_.size(); i++) {
+        icons_[i].setXY(15, i * 21 + textScroll_);
       }
       moveSelection();
     }
@@ -1252,7 +1266,23 @@ class LoadSaveMenu {
             newSavePath_.deselect();
             lowerCase();
             return PREVIOUS;
-          }          
+          }
+          // up directory button
+          SDL_Rect upDirectoryRect = upDirectory_.getRect();
+          if (SDL_PointInRect(&touchLocation, &upDirectoryRect) && !keybord_) {
+            if (savePath_ != "experiments/") {
+              savePath_ = savePath_.substr(0, savePath_.size() - 1);
+              for (int i = savePath_.size() - 1; i >= 0; i--) {
+                if (savePath_[i] == '/') {
+                  savePath_ = savePath_.substr(0, i + 1);
+                  break;
+                }
+              }
+            }
+            selectedPathIndex_ = -1;
+            textScroll_ = 999;
+            updatePaths();
+          }
           if (keybord_) { // popup is open
             // key presses
             for (int i = 0; i < NUM_OF_KEYS_; i++) {
@@ -1298,8 +1328,14 @@ class LoadSaveMenu {
                 selectedPathIndex_ = -1;
                 newSavePath_.setText("");
               } else {
-              
-                newSavePath_.setText(experimentPathTexts_[selectedPathIndex_].getText());
+                if (std::filesystem::exists(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp")) {
+                  newSavePath_.setText(experimentPathTexts_[selectedPathIndex_].getText());
+                } else {
+                  savePath_ += experimentPathTexts_[selectedPathIndex_].getText() + "/";
+                  selectedPathIndex_ = -1;
+                  textScroll_ = 999;
+                  updatePaths();
+                }
               }
               moveSelection();
             }
@@ -1329,6 +1365,9 @@ class LoadSaveMenu {
         for (unsigned int i = 0; i < experimentPathTexts_.size(); i++) {
           experimentPathTexts_[i].render();
         }
+        for (unsigned int i = 0; i < icons_.size(); i++) {
+          icons_[i].render();
+        }
       }
 
       buttonPadding_.render();
@@ -1337,6 +1376,7 @@ class LoadSaveMenu {
       saveButton_.render();
       keybordButton_.render();
       backButton_.render();
+      upDirectory_.render();
       deleteButton_.render();
       fileText_.render();
       newSavePath_.render();
