@@ -9,7 +9,8 @@ This application handels user interaction, experiment managment, cycle timing an
 - [X] add shift functionality to save keybord
 - [X] add are you sure dialog
 - [X] add save reminder
-- [ ] add folders to save / load
+- [X] add folders to save / load
+- [ ] add the ability to make new folders
 - [ ] add external directories to save / load
 - [ ] polish save and load menu
 - [X] add @#%&^ to keyford
