@@ -1251,9 +1251,20 @@ class LoadSaveMenu {
           SDL_Rect deleteButtonRect = deleteButton_.getRect();
           if (SDL_PointInRect(&touchLocation, &deleteButtonRect)) {
             if (selectedPathIndex_ != -1 && areYouSure("Are you sure you want to delete " + newSavePath_.getText() + "?")) {
-              remove((savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp").c_str());
-              selectedPathIndex_ = -1;
-              updatePaths();
+              if (std::filesystem::exists(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp")) {
+                remove((savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp").c_str());
+                selectedPathIndex_ = -1;
+                updatePaths();
+              } else {
+                for (const auto & entry : std::filesystem::directory_iterator(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + '/')) {
+                  remove(entry.path().string().c_str());
+                }
+
+
+                remove((savePath_ + experimentPathTexts_[selectedPathIndex_].getText()).c_str());
+                selectedPathIndex_ = -1;
+                updatePaths(); 
+              }
             } 
           }
           // back button
@@ -1323,6 +1334,7 @@ class LoadSaveMenu {
             }
             // select path
             if (UI::event.tfinger.timestamp - touchTimeStart_ <= 200 && touchLocation.y > maxTextScroll_) {
+              int lastIndex = selectedPathIndex_;
               selectedPathIndex_ = int(touchLocation.y - textScroll_) / 21;
               if (selectedPathIndex_ >= (int)experimentPathTexts_.size() || selectedPathIndex_ < 0) {
                 selectedPathIndex_ = -1;
@@ -1331,10 +1343,12 @@ class LoadSaveMenu {
                 if (std::filesystem::exists(savePath_ + experimentPathTexts_[selectedPathIndex_].getText() + ".exp")) {
                   newSavePath_.setText(experimentPathTexts_[selectedPathIndex_].getText());
                 } else {
-                  savePath_ += experimentPathTexts_[selectedPathIndex_].getText() + "/";
-                  selectedPathIndex_ = -1;
-                  textScroll_ = 999;
-                  updatePaths();
+                  if (lastIndex == selectedPathIndex_) {
+                    savePath_ += experimentPathTexts_[selectedPathIndex_].getText() + "/";
+                    selectedPathIndex_ = -1;
+                    textScroll_ = 999;
+                    updatePaths();
+                  }
                 }
               }
               moveSelection();
