@@ -10,7 +10,8 @@ This application handels user interaction, experiment managment, cycle timing an
 - [X] add are you sure dialog
 - [X] add save reminder
 - [X] add folders to save / load
-- [ ] add the ability to make new folders
+- [X] add the ability to make new folders
+- [X] fix file/folder same name ishues
 - [ ] add external directories to save / load
 - [ ] polish save and load menu
 - [X] add @#%&^ to keyford
@@ -20,6 +21,7 @@ This application handels user interaction, experiment managment, cycle timing an
 - [X] setup program auto launch
 - [X] replace boot text a splash scree or something
 - [ ] add button amimations
+- [ ] look into multy-threadding for serial comunication
 - [ ] try to inprove microcontroller communication speed
 - [ ] add settings menu: boiling point 
 - [X] fix memory ishues
