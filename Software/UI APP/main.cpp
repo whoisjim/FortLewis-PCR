@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include "ui.h"
+#include "serial.h"
 
 // lunix serial
 #include <fcntl.h>
@@ -81,9 +82,10 @@ bool areYouSure (std::string prompt) {
 // class for performing logic and rendering of the experiment editor where users can edit and run experiments
 class ExperimentEditor {
   private:
-    std::ofstream logFile_;
+    PCRSerial serial;
+    std::thread serialThread;
+
     timeval experimentStartTime_;
-    int serialPort_; // the serial port for communication to atmega328p
     bool atTemperature_; // is the system at the target temperature
     bool timerStarted_; // has the timer for the current step started
     timeval stepStartTime_; // the time that the current step got to temperature
@@ -127,6 +129,8 @@ class ExperimentEditor {
 
   public:
     ExperimentEditor ():
+    serial("/dev/ttyACM0"),
+    serialThread(std::thread(&PCRSerial::start, &serial)),
     cycleArray_(5, 5),
     buttonPadding_("img/padding/R_Grey_2.png", 5, 554, -10, 251, 500),
     keys_{UI::NumberKey(560,  78, 75, 75, '7', "7"),
@@ -157,7 +161,6 @@ class ExperimentEditor {
     currentTemperature_("fonts/Inconsolata-Medium.ttf", 16, 175, 459, "none"),
     etaText_("fonts/Inconsolata-Medium.ttf", 16, 250, 459, "ETA"),
     saveFileText_("fonts/Inconsolata-Medium.ttf", 16, 795, 459, "", -1) {
-      openSerial();
     }
 
     // displays a popup with a propmt and ok / cancel buttons, returns true if ok was pressed still updates experiment
@@ -224,7 +227,7 @@ class ExperimentEditor {
     // turn on and start sending temperature data to plc
     void startExperiment () {
       static int logFileNumber;
-      logFile_.open("data" + std::to_string(logFileNumber++) + ".txt");
+      serial.setDataLog(true);
       gettimeofday(&experimentStartTime_, NULL);
       
       if (cycleArray_.size() == 0) {
@@ -236,13 +239,11 @@ class ExperimentEditor {
       }
       state_ = RUNNING_;
       experimentIndex_ = -1;
-      writeSerial("on\n");
+      serial.setPower(true);
       statusIndicator_.setTexture("img/Green_Light.png");
       progressBar_.setTexture("img/padding/S_Green.png", 2);
       startStopButton_.setText("Abort");
       gettimeofday(&stepStartTime_, NULL);
-    
-      sleep(3);
       
       nextStep(); 
     }
@@ -258,29 +259,7 @@ class ExperimentEditor {
       gettimeofday(&currentTime, NULL);
       double currentDuration = (currentTime.tv_sec - stepStartTime_.tv_sec) + (currentTime.tv_usec - stepStartTime_.tv_usec) * 1e-6;
       
-      sleep(1);
-      
-      static int cnt;
-      cnt = (cnt + 1) % 4;
-      if (cnt == 1) {
-        writeSerial("d\n");
-      } else if (cnt == 3) {
-        std::string serialString = readSerial(); 
-        
-        std::string sub = "none";
-        for (unsigned int i = 0; i < serialString.length(); i++) {
-          if (serialString[i] == ' ') {
-            sub = serialString.substr(0, i);
-            UI::CycleStep* step = cycleArray_.getStep(experimentIndex_);
-            if (abs(std::stof(sub) - std::stof(step->getTemperature()->getText())) < 5) {
-              atTemperature_ = true;
-            }
-            logFile_ << step->getTemperature()->getText() << " " << serialString;
-            break;
-          }
-        }
-        currentTemperature_.setText(sub + "\xb0" + "C");
-      }
+      currentTemperature_.setText(std::to_string(serial.getPeltierTemperature()) + "\xb0" + "C");
       
       if (timerStarted_ && currentDuration > std::stof(cycleArray_.getStep(experimentIndex_)->getDuration()->getText())) {
         nextStep();
@@ -291,8 +270,6 @@ class ExperimentEditor {
 
     // set plc to next temperature in experiment
     void nextStep () {
-
-      sleep(3);
       experimentIndex_ += 1;
       
       progressBar_.setWH(69 * (float)experimentIndex_ / (float)cycleArray_.size(), 16);
@@ -300,7 +277,7 @@ class ExperimentEditor {
       try {
         UI::CycleStep* step = cycleArray_.getStep(experimentIndex_);
         targetTemperature_.setText(step->getTemperature()->getText() + "\xB0" + "C");
-        writeSerial("pt" + step->getTemperature()->getText() + "\n");
+        serial.setPeltierTemp(std::stof(step->getTemperature()->getText()));
         atTemperature_ = false;
         timerStarted_ = false;
       } catch (...) {
@@ -312,11 +289,9 @@ class ExperimentEditor {
     void finishExperiment () {
       timeval currentTime;
       gettimeofday(&currentTime, NULL);
-      logFile_ << "e " << (currentTime.tv_sec - experimentStartTime_.tv_sec) + (currentTime.tv_usec - experimentStartTime_.tv_usec) * 1e-6 << std::endl;
-      logFile_.close(); 
-      
-      sleep(3);
-      writeSerial("off\n");
+
+      serial.setPower(false);
+      serial.setDataLog(false);
       targetTemperature_.setText("Finished");
       statusIndicator_.setTexture("img/Blue_Light.png");
       progressBar_.setTexture("img/padding/S_Blue.png", 2);
@@ -329,11 +304,8 @@ class ExperimentEditor {
     void abortExperiment () {
       timeval currentTime;
       gettimeofday(&currentTime, NULL);
-      logFile_ << "e " << (currentTime.tv_sec - experimentStartTime_.tv_sec) + (currentTime.tv_usec - experimentStartTime_.tv_usec) * 1e-6 << std::endl;
-      logFile_.close(); 
-      
-      sleep(3);
-      writeSerial("off\n");
+      serial.setPower(false);
+      serial.setDataLog(false);
       targetTemperature_.setText("Aborted");
       statusIndicator_.setTexture("img/Red_Light.png");
       progressBar_.setTexture("img/padding/S_Red.png", 2);
@@ -353,64 +325,6 @@ class ExperimentEditor {
       startStopButton_.setText("Start");
     }
     
-    // open /dev/ttyACM0 as linux serial with baud rate 115200
-    void openSerial () {
-      serialPort_ = open("/dev/ttyACM0", O_RDWR);
-
-      if (serialPort_ < 0) {
-        printf("Error %i opening serial port: %s\n", errno, strerror(errno));
-      }
-
-      struct termios tty;
-      memset(&tty, 0, sizeof(tty));
-
-      if (tcgetattr(serialPort_, &tty) != 0) {
-        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
-      }
-
-      tty.c_cflag &= ~(PARENB | CSTOPB | CRTSCTS);
-      tty.c_cflag |= CREAD | CLOCAL | CS8;
-
-      tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHONL | ISIG);
-
-      tty.c_iflag &= ~(IXON | IXOFF | IXANY | IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
-
-      tty.c_oflag &= ~(OPOST | ONLCR);
-
-      tty.c_cc[VTIME] = 0;
-      tty.c_cc[VMIN] = 0;
-
-      cfsetispeed(&tty, B115200);
-      cfsetospeed(&tty, B115200);
-
-      if (tcsetattr(serialPort_, TCSANOW, &tty) != 0) {
-        printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
-      } else {
-        printf("Opened Serial Port\n"); 
-      }
-    }
-
-    // close serial port
-    void closeSerial () {
-      close(serialPort_);
-      printf("Closed Serial Port\n");
-    }
-
-    // read data from serial port
-    std::string readSerial () {
-      char readBuffer [256];
-      memset(&readBuffer, '\0', sizeof(readBuffer));
-      int n = read(serialPort_, &readBuffer, 256);
-      printf("Read Serial  %i : %s", n, std::string(readBuffer).c_str());
-      return std::string(readBuffer);
-    }
-
-    // write data to serial port
-    void writeSerial (std::string message) {
-      write(serialPort_, message.c_str(), sizeof(message.c_str()));
-      printf("Write Serial: %s", message.c_str());
-    }
-    
     // performs editor input and logic returns state to go to next
     states logic () {
       SDL_Point touchLocation; // location of touch
@@ -425,21 +339,6 @@ class ExperimentEditor {
             case SDLK_s: // pressed s, take screenshot
               static int screenshotNumber;
               UI::takeScreenShot("screenshot" + std::to_string(screenshotNumber++) + ".png");
-              break;
-            case SDLK_o:
-              writeSerial("on\n");
-              break;
-            case SDLK_i:
-              writeSerial("off\n");
-              break;
-            case SDLK_p:
-              writeSerial("state\n");
-              break;
-            case SDLK_d:
-              writeSerial("d\n");
-              break;
-            case SDLK_r:
-              readSerial();
               break;
           }
 
@@ -848,7 +747,8 @@ class ExperimentEditor {
       if (heldCycle_ != nullptr) {
         delete heldCycle_;
       }
-      closeSerial();
+      serial.stop();
+      serialThread.join();
     }
 };
 
