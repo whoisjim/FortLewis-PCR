@@ -1,4 +1,14 @@
+
+#include "TemperatureSensor.hpp"
+#include "PID.hpp"
+#include "RampPID.hpp"
+#include "HardcodedThreeStepPID.hpp"
+
 #include <math.h>
+
+// version is year.month.date.revision
+#define SOFTWARE_VERSION "2021.3.2.1"
+
 const int inA = 13; // pin connected to INA on VHN5019
 const int inB = 12; // pin connected to INB on VHN5019
 const int ppwm = 11; // pin connected to PWM on VHN5019
@@ -30,140 +40,12 @@ double currentPeltierTemp; // the tempature curently read from the thermoristor 
 double currentLidTemp; 
 double LastLidTemp;
 
-// class for creating a pid system
-class pid {
-  private:
-  double kp; // higher moves faster
-  double ki; // higher fixes ofset and faster
-  double kd; // higher settes faster but creastes ofset
-  unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
-  double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
-  double iErrorLimit = 255;
-  
-  public:
-  pid (double proportionalGain = 1, double integralGain = 0, double derivativeGain = 0) {
-    kp = proportionalGain; // higher moves faster
-    ki = integralGain; // higher fixes ofset and faster
-    kd = derivativeGain; // higher settes faster but creastes ofset and amplifies noise
-  }
-
-  void reset(){
-    iError = 0;
-  }
-  
-  double calculate(double currentTemp, double targetTemp) { // performs pid calculation returns error
-    lastTime = currentTime;
-    currentTime = millis();
-    lError = pError;
-    pError = targetTemp - currentTemp;
-    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
-    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
-    return kp * pError + ki * iError + kd * dError;
-  }
-  
-  void setKp(float value) {
-    kp = value;
-  }
-  
-  void setKi(float value) {
-    ki = value;
-  }
-  
-  void setKd(float value) {
-    kd = value;
-  }
-};
-
-// class for creating a pid system
-class RampPID {
-  private:
-  double kp; // higher moves faster
-  double ki; // higher fixes ofset and faster
-  double kd; // higher settes faster but creastes ofset
-  double kpc;
-  double kic;
-  double kdc;
-  unsigned long currentTime, lastTime; // the time in millisecconds of this timesep and the last timestep
-  double pError, lError, iError, dError; // error values for pid calculations. p: porportional, l: last, i: integerl, d: derivitive
-  double iErrorLimit = 255;
-  
-  public:
-  RampPID (double proportionalGain, double integralGain, double derivativeGain, double proportionalGainC, double integralGainC, double derivativeGainC) {
-    kp = proportionalGain; // higher moves faster
-    ki = integralGain; // higher fixes ofset and faster
-    kd = derivativeGain; // higher settes faster but creastes ofset and amplifies noise
-
-    kpc = proportionalGainC; // higher moves faster
-    kic = integralGainC; // higher fixes ofset and faster
-    kdc = derivativeGainC; // higher settes faster but creastes ofset and amplifies noise
-  }
-
-  void reset(){
-    iError = 0;
-  }
-  
-  double calculate(double currentTemp, double targetTemp) { // performs pid calculation returns error
-    lastTime = currentTime;
-    currentTime = millis();
-    lError = pError;
-    pError = targetTemp - currentTemp;
-    iError = min(max(pError * (double)(currentTime - lastTime) / 1000 + iError, -iErrorLimit), iErrorLimit);
-    dError = (pError - lError) / (double)(currentTime - lastTime) / 1000;
-    return (kp * targetTemp + kpc) * pError + (ki * targetTemp + kpc) * iError + (kd * targetTemp + kpc) * dError;
-  }
-  
-  void setKp(float value) {
-    kp = value;
-  }
-  
-  void setKi(float value) {
-    ki = value;
-  }
-  
-  void setKd(float value) {
-    kd = value;
-  }
-
-  void setKpc(float value) {
-    kpc = value;
-  }
-  
-  void setKic(float value) {
-    kic = value;
-  }
-  
-  void setKdc(float value) {
-    kdc = value;
-  }
-};
-
-// for creating a tempature sensor
-// includes noise reduction
-// call resetTemp() before a series of getTemp() calls
-// see elegooThermalResistorSch.png for wireing
-class TempSensor {
-  private:
-  int pin;
-  
-  public:
-  TempSensor(int iPin) { 
-    pin = iPin; // the pin that conected to the tempature network
-  }
-
-  double getTemp() { // returns the tempature from thermoristor connected to thermP in degrees C, includes noise reduction
-    int tempReading = analogRead(pin);
-    double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
-    tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
-    return (tempK - 273.15); // convert kelvin to celcius
-  }
-};
-
 // setup pieltier tempature sensor
-TempSensor peltierT(thermP);
-TempSensor LidT(LidP); // JD setup for thermo resistor temp 
+TemperatureSensor peltierT(thermP);
+TemperatureSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-RampPID peltierPID(0, 0, 0, 10, 0, 0);
+PID peltierPID(15, 0.1, 10000);
 
 void setup() {
   // setup serial
@@ -188,25 +70,31 @@ void setup() {
   digitalWrite(ssr,LOW);
 }
 
-void loop() {
+// checks UART serial for any commands and executes them
+void handleSerialInput() {
   if (Serial.available() > 0) {
     String incomingCommand = Serial.readString();
-    if (incomingCommand == "verbose\n") {
+    if (incomingCommand == "whoami\n") { // print out software ID
+      Serial.print("FLC-PCR software version: ");
+      Serial.print(SOFTWARE_VERSION);
+      Serial.print("\n");
+    }
+    if (incomingCommand == "verbose\n") { // toggle sending curent temp, pwm and current lid temp every loop
       if (verboseState) {
         verboseState = false;
       } else {
         verboseState = true;
       }
     }
-    if (incomingCommand == "pid\n") {
+    if (incomingCommand == "pid\n") { // toggle sending target temp, curent temp and pwm every loop
       if (verbosePID) {
         verbosePID = false;
       } else {
         verbosePID = true;
       }
     }
-    if (incomingCommand == "d\n") {
-      // requast system data
+    if (incomingCommand == "d\n") { // request a single sample of the curent temp, pwm and lid temp
+      // request system data
       Serial.print(avgPTemp);
       Serial.print(" ");
       Serial.print(avgPPWM);
@@ -214,69 +102,81 @@ void loop() {
       Serial.print(currentLidTemp);
       Serial.print("\n");
     }
-    if (incomingCommand == "state\n") {
+    if (incomingCommand == "state\n") { // check weather or not the pieltiers are on or off
       Serial.print(pPower);
       Serial.print("\n");
     }
-    if (incomingCommand == "offl\n") {
+    if (incomingCommand == "offl\n") { // turn off lid
       lPower = false;
-    } else if (incomingCommand == "offp\n") {
+    } else if (incomingCommand == "offp\n") { // turn off pieltiers
       pPower = false;
-    } else if (incomingCommand == "off\n") {
+    } else if (incomingCommand == "off\n") { // turn off both lid and pieltiers
       pPower = false;
       lPower = false;
     }
-    if (incomingCommand == "onl\n") {
+    if (incomingCommand == "onl\n") { // turn on the lid
       lPower = true;
-    } else if (incomingCommand == "onp\n") {
+    } else if (incomingCommand == "onp\n") { // turn on the pieltiers
       pPower = true;
-    } else if (incomingCommand == "on\n") {
+      peltierPID.reset();
+    } else if (incomingCommand == "on\n") { // turn on both lid and pieltiers
       peltierPID.reset();
       pPower = true;
       lPower = true;
     }
-    if (incomingCommand.substring(0,2) == "kp") {
+    if (incomingCommand.substring(0,2) == "kp") { // set proportional gain
       peltierPID.setKp(incomingCommand.substring(2).toFloat());
     }
-    if (incomingCommand.substring(0,2) == "ki") {
+    if (incomingCommand.substring(0,2) == "ki") { // set integral gain
       peltierPID.setKi(incomingCommand.substring(2).toFloat());
     }
-    if (incomingCommand.substring(0,2) == "kd") {
+    if (incomingCommand.substring(0,2) == "kd") { // set derivitive gain
       peltierPID.setKd(incomingCommand.substring(2).toFloat());
     }
-    if (incomingCommand.substring(0,2) == "pt") {
+    if (incomingCommand.substring(0,2) == "pt") { // set pieltier temperature
+      peltierPID.reset();
       targetPeltierTemp = incomingCommand.substring(2).toFloat();
     }
-    if (incomingCommand.substring(0,3) == "pia") {
+    if (incomingCommand.substring(0,3) == "pia") { // set size of pieltier temperature low pass filter
       avgPTempSampleSize = incomingCommand.substring(3).toInt();
     }
-    if (incomingCommand.substring(0,3) == "poa") {
+    if (incomingCommand.substring(0,3) == "poa") { // set size of pwm low pass filter
       avgPPWMSampleSize = incomingCommand.substring(3).toInt();
     }
-    if (incomingCommand.substring(0,3) == "plc") {
+    if (incomingCommand.substring(0,3) == "plc") { // set the max pwm for coling
       limitPWMC = incomingCommand.substring(3).toInt();
     }
-    if (incomingCommand.substring(0,3) == "plh") {
+    if (incomingCommand.substring(0,3) == "plh") { // set the max pwm for heating
       limitPWMH = incomingCommand.substring(3).toInt();
     }
   }
+}
+
+void loop() {
+  handleSerialInput();
 
   currentLidTemp = LidT.getTemp(); // read lid temp
   currentPeltierTemp = peltierT.getTemp(); // read pieltier temp
-  if (isnan(currentPeltierTemp) || isinf(currentPeltierTemp)) {
+  if (isnan(currentPeltierTemp) || isinf(currentPeltierTemp)) { // reset nan and inf values
     currentPeltierTemp = avgPTemp;
   }
 
-  currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
-  currentPeltierTemp = 0.6075525829531135 * currentPeltierTemp + 15.615801552818361; // seccond estimate
+  // old temperature calibration
+  //currentPeltierTemp = 0.9090590064070043 * currentPeltierTemp + 3.725848396176527; // estimate vial temperature
+  //currentPeltierTemp = 0.6075525829531135 * currentPeltierTemp + 15.615801552818361; // seccond estimate
+
+  // 3/2/2021 temperature calabration
+  currentPeltierTemp = 1.1201 * currentPeltierTemp - 3.32051;
   
   avgPTemp = ((avgPTempSampleSize - 1) * avgPTemp + currentPeltierTemp) / avgPTempSampleSize; // average
   peltierPWM = peltierPID.calculate(avgPTemp, targetPeltierTemp); // calculate pid and set to output
   peltierPWM = min(limitPWMH, max(-limitPWMC, peltierPWM)); // clamp output between -255 and 255
-  if (isnan(peltierPWM ) || isinf(peltierPWM )) {
+  if (isnan(peltierPWM ) || isinf(peltierPWM )) { // reset nan and inf values
     peltierPWM = avgPPWM;
   }
   avgPPWM = ((avgPPWMSampleSize - 1) * avgPPWM + peltierPWM) / avgPPWMSampleSize; // average
+
+  // print out verbose data to serial if set
   if (verboseState) {
     Serial.print(avgPTemp);
     Serial.print(" ");
@@ -292,8 +192,9 @@ void loop() {
     Serial.print(" ");
     Serial.print(avgPPWM);
     Serial.print("\n");
-  } 
-  // Lid control
+  }
+
+  // lid controll
   if (lPower) {
     if(currentLidTemp < 90){ 
       digitalWrite(ssr, HIGH);
@@ -304,29 +205,25 @@ void loop() {
     digitalWrite(ssr, LOW);
   }
   
-  if (!pPower || currentPeltierTemp > 150) {// shut off system if over 150 degrees for safety
+  // pieltier control
+  if (!pPower || currentPeltierTemp > 150) { // pieltiers on, shut down if over 150C
     digitalWrite(inA, LOW);
     digitalWrite(inB, LOW);
-    analogWrite(fpwm, 1024);
+    analogWrite(fpwm, 225);
     analogWrite(ppwm, 0);
-    //digitalWrite(ssr, LOW);
 
     peltierPID.reset();
-    // fixes nan error
-    //avgPTemp = currentPeltierTemp;
-    //avgPPWM = peltierPWM; 
     return;
-  }
-
-  // pieltier controll
-  // convert pieltierDelta to pwm, inA, inB, and fan signals
-  analogWrite(ppwm, abs(peltierPWM));
-  analogWrite(fpwm, 255);
-  if (peltierPWM > 0) {
-    digitalWrite(inA, HIGH);
-    digitalWrite(inB, LOW);
-  } else {
-    digitalWrite(inA, LOW);
-    digitalWrite(inB, HIGH);
+  } else { // pieltiers on
+    // convert pieltierDelta to pwm, inA, inB
+    analogWrite(ppwm, abs(peltierPWM));
+    analogWrite(fpwm, 255);
+    if (peltierPWM > 0) {
+      digitalWrite(inA, HIGH);
+      digitalWrite(inB, LOW);
+    } else {
+      digitalWrite(inA, LOW);
+      digitalWrite(inB, HIGH);
+    }
   }
 }
