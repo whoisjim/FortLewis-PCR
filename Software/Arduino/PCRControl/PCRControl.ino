@@ -7,7 +7,7 @@
 #include <math.h>
 
 // version is year.month.date.revision
-#define SOFTWARE_VERSION "2021.3.2.1"
+#define SOFTWARE_VERSION "2021.3.3.1"
 
 const int inA = 13; // pin connected to INA on VHN5019
 const int inB = 12; // pin connected to INB on VHN5019
@@ -196,7 +196,7 @@ void loop() {
 
   // lid controll
   if (lPower) {
-    if(currentLidTemp < 90){ 
+    if(currentLidTemp < 70){ 
       digitalWrite(ssr, HIGH);
     } else {
       digitalWrite(ssr, LOW);
