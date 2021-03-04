@@ -1,7 +1,6 @@
 #include "serial.h"
 
 PCRSerial::PCRSerial (std::string path)  {
-  std::cout << "open" << std::endl << std::flush;
   serialPort_ = open(path.c_str(), O_RDWR);
 
   if (serialPort_ < 0) {
@@ -32,8 +31,6 @@ PCRSerial::PCRSerial (std::string path)  {
 
   if (tcsetattr(serialPort_, TCSANOW, &tty) != 0) {
     printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
-  } else {
-    printf("Opened Serial Port\n");
   }
 
   targetTemperature_ = 0;
@@ -48,40 +45,32 @@ void PCRSerial::start () {
     if (!commandBuffer_.empty()) { // send command
       writeSerial(commandBuffer_.front());
       commandBuffer_.pop();
-      sleep(1);
+      sleep(2);
     } else { // check temperature
       writeSerial("d\n");
       sleep(1);
-      
-      std::string serialString = readSerial() + ' ';
-      int numberIndex = 0; // keep track of how many numbers have ben recived
-      int lastI = 0; // index of the last number break
-      for (unsigned int i = 0; i < serialString.length(); i++) {
-        if (serialString[i] == ' ') {
-          switch (numberIndex) {
-          case 0:
-            try {
-              peltierTemperature_ = std::stof(serialString.substr(lastI, i));
-              lastI = i;
-            } catch (...) {}
-            break;
-          case 1:
-            try {
-              PWM_ = std::stof(serialString.substr(lastI, i));
-              lastI = i;
-            } catch (...) {}
-            break;
-          case 2:
-            try {
-              lidTemperature_ = std::stof(serialString.substr(lastI, i));
-              lastI = i;
-            } catch (...) {}
-            break;         
-          default:
-            break;
-          }
-        }
+
+      std::string data = readSerial();
+
+      if (log_) {
+      	logFile_ << targetTemperature_ << " " << data; 
       }
+      
+      std::stringstream serialStringStream(data);
+      
+      std::string word;
+      serialStringStream >> word;
+      if (word != "") {
+      	peltierTemperature_ = std::stof(word);
+      }
+      serialStringStream >> word;
+      if (word != "") {
+        PWM_ = std::stof(word);
+      }
+      serialStringStream >> word;
+      if (word != "") {
+        lidTemperature_ = std::stof(word);
+      } 
       sleep(1);
     }
   }
@@ -89,19 +78,16 @@ void PCRSerial::start () {
 
 void PCRSerial::writeSerial (std::string message) {
   write(serialPort_, message.c_str(), sizeof(message.c_str()));
-  printf("Write Serial: %s", message.c_str());
 }
 
 std::string PCRSerial::readSerial () {
   char readBuffer [256];
   std::memset(&readBuffer, '\0', sizeof(readBuffer));
-  int n = read(serialPort_, &readBuffer, 256);
-  printf("Read Serial  %i : %s", n, std::string(readBuffer).c_str());
+  read(serialPort_, &readBuffer, 256);
   return std::string(readBuffer);
 }
 
 void PCRSerial::stop () {
-    std::cout << "stop" << std::endl << std::flush;
   loop_ = false;
 }
 
@@ -118,7 +104,17 @@ int PCRSerial::getPWM () {
 }
 
 void PCRSerial::setDataLog (bool state) {
-
+  log_ = state;
+  if (log_) {
+    static int logFileNumber;
+    logFile_.open("log" + std::to_string(logFileNumber++) + ".txt");
+    gettimeofday(&logStartTime_, NULL);
+  } else {
+    timeval currentTime;
+    gettimeofday(&currentTime, NULL);
+    logFile_ << "e " << (currentTime.tv_sec - logStartTime_.tv_sec) + (currentTime.tv_usec - logStartTime_.tv_usec) * 1e-6 << std::endl;
+    logFile_.close(); 
+  }
 }
 
 void PCRSerial::setPower (bool state) {
@@ -146,7 +142,8 @@ void PCRSerial::setPeltierPower(bool state) {
 }
 
 void PCRSerial::setPeltierTemp(float temperature) {
-  commandBuffer_.push("pt" + std::to_string(temperature) + '\n'); 
+  commandBuffer_.push("pt" + std::to_string((int)temperature) + '\n');
+  targetTemperature_ = temperature;
 }
 
 PCRSerial::~PCRSerial () {

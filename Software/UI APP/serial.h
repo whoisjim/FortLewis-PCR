@@ -7,8 +7,10 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
-
+#include <sstream>
 #include <iostream>
+#include <ctime>
+#include <sys/time.h>
 
 class PCRSerial {
   public:
@@ -37,8 +39,8 @@ class PCRSerial {
     int PWM_;
     
     bool log_;
-    std::ofstream logFile;
-    timeval logStartTime;
+    std::ofstream logFile_;
+    timeval logStartTime_;
     
     std::string readSerial ();
     void writeSerial (std::string);

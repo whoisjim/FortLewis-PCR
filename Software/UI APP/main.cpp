@@ -129,7 +129,7 @@ class ExperimentEditor {
 
   public:
     ExperimentEditor ():
-    serial("/dev/ttyACM0"),
+    serial("/dev/ttyUSB0"),
     serialThread(std::thread(&PCRSerial::start, &serial)),
     cycleArray_(5, 5),
     buttonPadding_("img/padding/R_Grey_2.png", 5, 554, -10, 251, 500),
@@ -226,7 +226,6 @@ class ExperimentEditor {
 
     // turn on and start sending temperature data to plc
     void startExperiment () {
-      static int logFileNumber;
       serial.setDataLog(true);
       gettimeofday(&experimentStartTime_, NULL);
       
@@ -250,6 +249,14 @@ class ExperimentEditor {
 
     // check if an update to plc temperature is readdy
     void updateStep () {
+      
+      // check temperature
+      if (2 > std::abs(serial.getPeltierTemperature() - std::stof(targetTemperature_.getText()))) {
+      	atTemperature_ = true;
+      }
+      currentTemperature_.setText(std::to_string((int)serial.getPeltierTemperature()) + "\xb0" + "C");
+      
+      // start timer if just reachedtemperature
       if (atTemperature_ && !timerStarted_) {
         gettimeofday(&stepStartTime_, NULL);
         timerStarted_ = true;
@@ -259,8 +266,7 @@ class ExperimentEditor {
       gettimeofday(&currentTime, NULL);
       double currentDuration = (currentTime.tv_sec - stepStartTime_.tv_sec) + (currentTime.tv_usec - stepStartTime_.tv_usec) * 1e-6;
       
-      currentTemperature_.setText(std::to_string(serial.getPeltierTemperature()) + "\xb0" + "C");
-      
+      // start next step if at temperature for the duration
       if (timerStarted_ && currentDuration > std::stof(cycleArray_.getStep(experimentIndex_)->getDuration()->getText())) {
         nextStep();
         gettimeofday(&stepStartTime_, NULL);
