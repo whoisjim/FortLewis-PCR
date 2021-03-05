@@ -7,7 +7,7 @@
 #include <math.h>
 
 // version is year.month.date.revision
-#define SOFTWARE_VERSION "2021.3.3.1"
+#define SOFTWARE_VERSION "2021.3.5.4"
 
 const int inA = 13; // pin connected to INA on VHN5019
 const int inB = 12; // pin connected to INB on VHN5019
@@ -45,7 +45,7 @@ TemperatureSensor peltierT(thermP);
 TemperatureSensor LidT(LidP); // JD setup for thermo resistor temp 
 
 // setup pieltier PID
-PID peltierPID(15, 0.1, 10000);
+PID peltierPID(10, 0.01, 1000000);
 
 void setup() {
   // setup serial
