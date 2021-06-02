@@ -1,3 +1,5 @@
+sudo apt-get update
+sudo apt-get upgrade
 # Installs SDL2 in the current directory
 sudo apt-get install mercurial libfontconfig-dev qt5-default automake mercurial libtool libfreeimage-dev libopenal-dev libpango1.0-dev libsndfile-dev libudev-dev libtiff5-dev libwebp-dev libasound2-dev libaudio-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libxss-dev libesd0-dev freeglut3-dev libmodplug-dev libsmpeg-dev libjpeg-dev
 hg clone https://hg.libsdl.org/SDL
