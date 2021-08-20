@@ -18,7 +18,7 @@ Install git and clone the repository with the following commands
 sudo apt-get update
 sudo apt-get upgrade
 sudo apt-get install git
-git clone https://github.com/whoisjim/Carbon-Corvus-Aeronautics-DAQ
+git clone https://github.com/whoisjim/FortLewis-PCR
 ```
 
 ### 3. Install Dependencies For The Command Line
