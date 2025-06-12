@@ -49,7 +49,7 @@ void PCRSerial::start () {
     } else { // check temperature
       writeSerial("d\n");
       //sleep(1);
-      usleep(300000); //faster reading 6/11
+      usleep(100000); //faster reading 6/11
 
       std::string data = readSerial();
 
@@ -73,7 +73,7 @@ void PCRSerial::start () {
         lidTemperature_ = std::stof(word);
       } 
       //sleep(1);
-      usleep(300000); //faster reading 6/11
+      usleep(100000); //faster reading 6/11
     }
   }
 }
