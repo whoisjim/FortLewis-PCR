@@ -251,9 +251,9 @@ class ExperimentEditor {
     void updateStep () {
       
       // check temperature
-      if (2 > std::abs(serial.getPeltierTemperature() - std::stof(targetTemperature_.getText()))) {
+      if (1 > std::abs(serial.getPeltierTemperature() - std::stof(targetTemperature_.getText()))) {
       	atTemperature_ = true;
-      }
+      } //smaller_range
       currentTemperature_.setText(std::to_string((int)serial.getPeltierTemperature()) + "\xb0" + "C");
       
       // start timer if just reachedtemperature
