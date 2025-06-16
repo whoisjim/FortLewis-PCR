@@ -51,11 +51,20 @@ void PCRSerial::start () {
       //sleep(1);
       usleep(200000); //faster reading 6/11
 
+      
       std::string data = readSerial();
+      // if (log_) {
+          // logFile_ << targetTemperature_ << " " << data;
+      // }
 
-      if (log_) {
-      	logFile_ << targetTemperature_ << " " << data; 
+
+      if (log_ && data != "" && data.find(" ") != std::string::npos) {
+          timeval now;
+          gettimeofday(&now, NULL);
+          double elapsed = (now.tv_sec - logStartTime_.tv_sec) + (now.tv_usec - logStartTime_.tv_usec) * 1e-6;
+          logFile_ << targetTemperature_ << " " << data << " " << elapsed << std::endl;
       }
+
       
       std::stringstream serialStringStream(data);
       
