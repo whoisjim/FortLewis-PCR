@@ -91,22 +91,6 @@ void PCRSerial::start () {
                  << lidTemperature_ << "\n";
       }
 
-      
-      std::stringstream serialStringStream(data);
-      
-      std::string word;
-      serialStringStream >> word;
-      if (word != "") {
-      	peltierTemperature_ = std::stof(word);
-      }
-      serialStringStream >> word;
-      if (word != "") {
-        PWM_ = std::stof(word);
-      }
-      serialStringStream >> word;
-      if (word != "") {
-        lidTemperature_ = std::stof(word);
-      } 
       usleep(1000000);
     }
   }
