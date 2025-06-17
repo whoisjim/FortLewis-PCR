@@ -1,7 +1,7 @@
 #include "serial.h"
-#include <chrono>
-#include <ctime>
-#include <iomanip>
+//#include <chrono>
+//#include <ctime>
+//#include <iomanip>
 
 PCRSerial::PCRSerial (std::string path)  {
   serialPort_ = open(path.c_str(), O_RDWR);
@@ -48,11 +48,11 @@ void PCRSerial::start () {
     if (!commandBuffer_.empty()) { // send command
       writeSerial(commandBuffer_.front());
       commandBuffer_.pop();
-      usleep(250000); //faster reading
+      usleep(500000); //faster reading
     } else { // check temperature
       writeSerial("d\n");
       //sleep(1);
-      usleep(250000); //faster reading 6/11
+      usleep(500000); //faster reading 6/11
 
       
       std::string data = readSerial();
@@ -91,7 +91,7 @@ void PCRSerial::start () {
         lidTemperature_ = std::stof(word);
       } 
       //sleep(1);
-      usleep(250000); //faster reading 6/11
+      usleep(500000); //faster reading 6/11
     }
   }
 }
