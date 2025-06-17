@@ -58,15 +58,14 @@ void PCRSerial::start () {
       // }
 
 
-      if (log_ && !data.empty() && data.find(" ") != std::string::npos) {
-    // Remove trailing newline or carriage return
+      if (log_ && !data.empty()) {
+    // Clean data
           while (!data.empty() && (data.back() == '\n' || data.back() == '\r')) {
               data.pop_back();
-          }
+          }      
 
-    // Split the string into tokens
           std::stringstream ss(data);
-          std::string currentTempStr, pwmStr, lidStr;
+          std::string currentTempStr = "0", pwmStr = "0", lidStr = "0";
           ss >> currentTempStr >> pwmStr >> lidStr;
 
     // Compute timestamp
@@ -74,12 +73,12 @@ void PCRSerial::start () {
           gettimeofday(&now, NULL);
           double elapsed = (now.tv_sec - logStartTime_.tv_sec) + (now.tv_usec - logStartTime_.tv_usec) * 1e-6;
 
-    // Write each field manually
           logFile_ << targetTemperature_ << " "
                    << currentTempStr << " "
                    << pwmStr << " "
                    << lidStr << " "
                    << elapsed << std::endl;
+
           logFile_.flush();
       }
 
