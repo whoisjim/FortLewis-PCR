@@ -49,16 +49,32 @@ void PCRSerial::start () {
     if (!commandBuffer_.empty()) { // send command
       writeSerial(commandBuffer_.front());
       commandBuffer_.pop();
-      usleep(500000);
+      usleep(1000000);
     } else { // check temperature
       writeSerial("d\n");
-      usleep(500000);
+      usleep(1000000);
 
       std::string data = readSerial();
 
       //if (log_) {
       	//logFile_ << targetTemperature_ << " " << data; 
       //}
+      std::stringstream serialStringStream(data);
+      std::string word;
+
+      serialStringStream >> word;
+      if (word != "") {
+        peltierTemperature_ = std::stof(word);
+      }
+      serialStringStream >> word;
+      if (word != "") {
+        PWM_ = std::stof(word);
+      }
+      serialStringStream >> word;
+      if (word != "") {
+        lidTemperature_ = std::stof(word);
+      }
+
       if (log_) {
         auto now = std::chrono::system_clock::now();
         auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -69,7 +85,10 @@ void PCRSerial::start () {
 
         logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
                  << milliseconds.count() << " "
-                 << targetTemperature_ << " " << data << "\n";
+                 << targetTemperature_ << " "
+                 << peltierTemperature_ << " "
+                 << PWM_ << " "
+                 << lidTemperature_ << "\n";
       }
 
       
@@ -88,7 +107,7 @@ void PCRSerial::start () {
       if (word != "") {
         lidTemperature_ = std::stof(word);
       } 
-      usleep(500000);
+      usleep(1000000);
     }
   }
 }
