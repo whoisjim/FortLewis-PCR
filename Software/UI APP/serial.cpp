@@ -56,23 +56,23 @@ void PCRSerial::start () {
 
       
       std::string data = readSerial();
-      // if (log_) {
-          // logFile_ << targetTemperature_ << " " << data;
-      // }
+      if (log_) {
+          logFile_ << targetTemperature_ << " " << data;
+      }
 
 
-     if (log_) {
-         auto now = std::chrono::system_clock::now();
-         auto in_time_t = std::chrono::system_clock::to_time_t(now);
-         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            now.time_since_epoch()) % 1000;
+     // if (log_) {
+     //     auto now = std::chrono::system_clock::now();
+     //     auto in_time_t = std::chrono::system_clock::to_time_t(now);
+     //     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+     //                        now.time_since_epoch()) % 1000;
 
-         std::tm* tm = std::localtime(&in_time_t);
+     //     std::tm* tm = std::localtime(&in_time_t);
 
-         logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
-                  << milliseconds.count() << " "
-                  << targetTemperature_ << " " << data << "\n";
-     } //update timestamp
+     //     logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
+     //              << milliseconds.count() << " "
+     //              << targetTemperature_ << " " << data << "\n";
+     // } //update timestamp
 
       
       std::stringstream serialStringStream(data);
