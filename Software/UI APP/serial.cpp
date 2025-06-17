@@ -97,7 +97,8 @@ void PCRSerial::start () {
 }
 
 void PCRSerial::writeSerial (std::string message) {
-  write(serialPort_, message.c_str(), sizeof(message.c_str()));
+  //write(serialPort_, message.c_str(), sizeof(message.c_str()));
+  write(serialPort_, message.c_str(), message.length());
 }
 
 std::string PCRSerial::readSerial () {
