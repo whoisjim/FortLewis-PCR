@@ -1,4 +1,7 @@
 #include "serial.h"
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 
 PCRSerial::PCRSerial (std::string path)  {
   serialPort_ = open(path.c_str(), O_RDWR);
@@ -58,29 +61,18 @@ void PCRSerial::start () {
       // }
 
 
-      if (log_ && !data.empty()) {
-    // Clean data
-          while (!data.empty() && (data.back() == '\n' || data.back() == '\r')) {
-              data.pop_back();
-          }      
+     if (log_) {
+         auto now = std::chrono::system_clock::now();
+         auto in_time_t = std::chrono::system_clock::to_time_t(now);
+         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            now.time_since_epoch()) % 1000;
 
-          std::stringstream ss(data);
-          std::string currentTempStr = "0", pwmStr = "0", lidStr = "0";
-          ss >> currentTempStr >> pwmStr >> lidStr;
+         std::tm* tm = std::localtime(&in_time_t);
 
-    // Compute timestamp
-          timeval now;
-          gettimeofday(&now, NULL);
-          double elapsed = (now.tv_sec - logStartTime_.tv_sec) + (now.tv_usec - logStartTime_.tv_usec) * 1e-6;
-
-          logFile_ << targetTemperature_ << " "
-                   << currentTempStr << " "
-                   << pwmStr << " "
-                   << lidStr << " "
-                   << elapsed << std::endl;
-
-          logFile_.flush();
-      }
+         logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
+                  << milliseconds.count() << " "
+                  << targetTemperature_ << " " << data << "\n";
+     } //update timestamp
 
       
       std::stringstream serialStringStream(data);
