@@ -72,7 +72,7 @@ void PCRSerial::start () {
       if (word != "") {
         lidTemperature_ = std::stof(word);
       } 
-      sleep(500000);
+      usleep(500000);
     }
   }
 }
