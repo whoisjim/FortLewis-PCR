@@ -49,10 +49,10 @@ void PCRSerial::start () {
     if (!commandBuffer_.empty()) { // send command
       writeSerial(commandBuffer_.front());
       commandBuffer_.pop();
-      usleep(250000);
+      usleep(500000);
     } else { // check temperature
       writeSerial("d\n");
-      usleep(250000);
+      usleep(500000);
 
       std::string data = readSerial();
 
@@ -91,7 +91,7 @@ void PCRSerial::start () {
                  << lidTemperature_ << "\n";
       }
 
-      usleep(250000);
+      usleep(500000);
     }
   }
 }
