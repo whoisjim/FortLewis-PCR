@@ -1,8 +1,4 @@
 #include "serial.h"
-#include <unistd.h>
-#include <chrono>
-#include <iomanip>
-
 
 PCRSerial::PCRSerial (std::string path)  {
   serialPort_ = open(path.c_str(), O_RDWR);
@@ -49,22 +45,23 @@ void PCRSerial::start () {
     if (!commandBuffer_.empty()) { // send command
       writeSerial(commandBuffer_.front());
       commandBuffer_.pop();
-      usleep(1000000);
+      sleep(2);
     } else { // check temperature
       writeSerial("d\n");
-      usleep(1000000);
+      sleep(1);
 
       std::string data = readSerial();
 
-      //if (log_) {
-      	//logFile_ << targetTemperature_ << " " << data; 
-      //}
+      if (log_) {
+      	logFile_ << targetTemperature_ << " " << data; 
+      }
+      
       std::stringstream serialStringStream(data);
+      
       std::string word;
-
       serialStringStream >> word;
       if (word != "") {
-        peltierTemperature_ = std::stof(word);
+      	peltierTemperature_ = std::stof(word);
       }
       serialStringStream >> word;
       if (word != "") {
@@ -73,31 +70,14 @@ void PCRSerial::start () {
       serialStringStream >> word;
       if (word != "") {
         lidTemperature_ = std::stof(word);
-      }
-
-      if (log_) {
-        auto now = std::chrono::system_clock::now();
-        auto in_time_t = std::chrono::system_clock::to_time_t(now);
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              now.time_since_epoch()) % 1000;
-
-        std::tm* tm = std::localtime(&in_time_t);
-
-        logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
-                 << milliseconds.count() << " "
-                 << targetTemperature_ << " "
-                 << peltierTemperature_ << " "
-                 << PWM_ << " "
-                 << lidTemperature_ << "\n";
-      }
-
-      usleep(1000000);
+      } 
+      sleep(1);
     }
   }
 }
 
 void PCRSerial::writeSerial (std::string message) {
-  write(serialPort_, message.c_str(), message.length());  // ✅ proper send
+  write(serialPort_, message.c_str(), sizeof(message.c_str()));
 }
 
 std::string PCRSerial::readSerial () {
@@ -169,20 +149,3 @@ void PCRSerial::setPeltierTemp(float temperature) {
 PCRSerial::~PCRSerial () {
   close(serialPort_);
 }
-
-
-     // if (log_) {
-     //     auto now = std::chrono::system_clock::now();
-     //     auto in_time_t = std::chrono::system_clock::to_time_t(now);
-     //     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
-     //                        now.time_since_epoch()) % 1000;
-
-     //     std::tm* tm = std::localtime(&in_time_t);
-
-     //     logFile_ << std::put_time(tm, "%T") << "." << std::setfill('0') << std::setw(3)
-     //              << milliseconds.count() << " "
-     //              << targetTemperature_ << " " << data << "\n";
-     // } //update timestamp
-
-      
-  
