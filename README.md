@@ -7,6 +7,8 @@ FLC-PCR is a field deployable and low cost PCR thermocycler developed by student
 - James Ferguson
 - Jesse Duran
 - Wesley Killinen
+- Gavin Wakefield
+- Farjana Showme
 
 ## Faculty Advisors
 
