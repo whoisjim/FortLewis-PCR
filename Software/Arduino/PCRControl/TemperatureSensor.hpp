@@ -1,20 +1,27 @@
-#include <Arduino.h>  // Required for analogRead()
-#include <math.h>     // Required for log()
-
-// TemperatureSensor class for reading temperature from a thermistor
 class TemperatureSensor {
-  private:
-  int pin;
-  
-  public:
-  TemperatureSensor(int iPin) { 
-    pin = iPin; // the pin that conected to the tempature network
-  }
+  // Constants from online thermistor calculator 
+  static constexpr double A = 0.001158848211;
+  static constexpr double B = 0.0002252088104;
+  static constexpr double C = 0.0000001528340862;
 
-  double getTemp() { // returns the tempature from thermoristor connected to thermP in degrees C, includes noise reduction
-    int tempReading = analogRead(pin);
-    double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
-    tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK ); // kelvin
-    return (tempK - 273.15); // convert kelvin to celcius
-  }
+  private:
+    int pin;
+
+  public:
+    TemperatureSensor(int iPin) {
+      pin = iPin;
+    }
+
+    double getTemp(double targetTemp) {
+      int tempReading = analogRead(pin);
+      if (tempReading <= 1 || tempReading >= 1022) return NAN;
+      
+      double resistance = 10000.0 * (1023.0 / tempReading - 1.0);
+      double logR = log(10000.0 * ((1024.0 / tempReading - 1)));
+      double tempK = 1.0 / (A + (B + C * logR * logR) * logR);
+
+      double tempC = tempK - 273.15;
+
+      return tempC;
+    }
 };
